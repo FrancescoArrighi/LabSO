@@ -47,28 +47,28 @@ typedef struct {
     int fd[2];
 } device;
 
-typedef struct int_node {
+typedef struct {
     int val;
     struct int_node * next;
 } int_node;
 
 typedef struct {
-    int_node * head;
+    struct int_node * head;
     int n;
 } int_list;
 
 typedef struct {
     int integer;
-    device * val;
+    struct device * val;
 } pair_int_device;
 
-typedef struct device_node{
-    device * val;
+typedef struct {
+    struct device * val;
     struct device_node * next;
 } device_node;
 
 typedef struct {
-    device_node * head;
+    struct device_node * head;
     int n;
 } device_list;
 
