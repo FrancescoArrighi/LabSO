@@ -1,7 +1,20 @@
 #include <stdio.h>
-#include <unistd.h>
-#include <string.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 //valori di verità
 #define TRUE 1
@@ -21,6 +34,16 @@
 
 //funzioni
 #define ADD 1
+
+int insert_int(int val, int n, struct int_list * list);
+int rm_int(int n, struct int_list * list);
+int insert_device(struct device * val, int n, struct device_list * list);
+int rm(int n, struct device_list * list);
+void str_split(char * str, char ** rt);
+void initialize_child();
+void prepare_fork(int figlio, device * devices);
+void leggiconsole();
+void console();
 
 int type;
 
@@ -60,6 +83,52 @@ struct pair_int get_int(int n, struct int_list * list){
     }
     return rt;
 }
+
+struct int_list * create_int_list(){
+    struct int_list * rt = (struct int_list *) malloc(sizeof(struct int_list));
+    rt->head = NULL;
+    rt->n = 0;
+    return rt;
+}
+
+struct pair_int_device{
+    int integer;
+    struct device * val;
+};
+
+struct device_node{
+    struct device * val;
+    struct device_node * next;
+};
+
+struct device_list{
+    struct device_node * head;
+    int n;
+};
+
+struct pair_int_device get_device(int n, struct device_list * list){
+    struct pair_int_device rt;
+    if(list->n <= n || n < 0){
+        rt.integer = FALSE;
+    }
+    else{
+        struct device_node * temp = list->head;
+        int i;
+        for(i = 0; i < n; i++){
+            temp = temp->next;
+        }
+        rt.integer = TRUE;
+        rt.val = temp->val;
+    }
+    return rt;
+}
+struct device_list * create_device_list(){
+    struct device_list * rt = (struct device_list *) malloc(sizeof(struct device_list));
+    rt->head = NULL;
+    rt->n = 0;
+    return rt;
+}
+
 
 int insert_int(int val, int n, struct int_list * list){
     int rt;
@@ -109,45 +178,6 @@ int rm_int(int n, struct int_list * list){
         }
         rt = TRUE;
         list->n--;
-    }
-    return rt;
-}
-
-struct int_list * create_int_list(){
-    struct int_list * rt = (struct int_list *) malloc(sizeof(struct int_list));
-    rt->head = NULL;
-    rt->n = 0;
-    return rt;
-}
-
-struct pair_int_device{
-    int integer;
-    struct device * val;
-};
-
-struct device_node{
-    struct device * val;
-    struct device_node * next;
-};
-
-struct device_list{
-    struct device_node * head;
-    int n;
-};
-
-struct pair_int_device get_device(int n, struct device_list * list){
-    struct pair_int_device rt;
-    if(list->n <= n || n < 0){
-        rt.integer = FALSE;
-    }
-    else{
-        struct device_node * temp = list->head;
-        int i;
-        for(i = 0; i < n; i++){
-            temp = temp->next;
-        }
-        rt.integer = TRUE;
-        rt.val = temp->val;
     }
     return rt;
 }
@@ -204,14 +234,6 @@ int rm(int n, struct device_list * list){
     return rt;
 }
 
-struct device_list * create_device_list(){
-    struct device_list * rt = (struct device_list *) malloc(sizeof(struct device_list));
-    rt->head = NULL;
-    rt->n = 0;
-    return rt;
-}
-
-
 void str_split(char * str, char ** rt){
     int i = 0, j = 1;
     for(i = 0; str[i] != '\0'; i++){
@@ -232,7 +254,7 @@ void str_split(char * str, char ** rt){
             j++;
         }
     }
-    
+
 }
 
 void hub(){
@@ -252,23 +274,23 @@ void initialize_child(){
         case HUB:
             hub();
             break;
-            
+
         case TIMER:
             timer();
             break;
-            
+
         case BULB:
-            
+
             break;
-        
+
         case WINDOW:
-            
+
             break;
-        
+
         case FRIDGE:
-            
+
             break;
-            
+
         default:                //inserire messaggio errore
             break;
     }
@@ -299,28 +321,28 @@ void leggiconsole(){
     char * str = (char *) malloc(sizeof(char) * 110);
     char ** cmd;
     struct device_list dvs;
-    
+
     int flag = TRUE;
     while (flag) {
         scanf("%100s", str);
         str_split(str, cmd);
         if(strcmp(cmd[0], "list") == 0){
-            
+
         }
         else if(strcmp(cmd[0], "add") == 0){
-            
+
         }
         else if(strcmp(cmd[0], "del") == 0){
-            
+
         }
         else if(strcmp(cmd[0], "link") == 0){
             link(cmd);
         }
         else if(strcmp(cmd[0], "switch") == 0){
-            
+
         }
         else if(strcmp(cmd[0], "info") == 0){
-            
+
         }
         else if(strcmp(cmd, "quit") == 0){
             flag = FALSE;
