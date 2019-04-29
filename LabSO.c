@@ -1,8 +1,9 @@
+//Librerie che possiamo usare
 #include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <sys/stat.h>
@@ -35,10 +36,51 @@
 //funzioni
 #define ADD 1
 
-int insert_int(int val, int n, struct int_list * list);
-int rm_int(int n, struct int_list * list);
-int insert_device(struct device * val, int n, struct device_list * list);
-int rm(int n, struct device_list * list);
+//Struct
+typedef struct {
+    int first;
+    int second;
+} pair_int;
+
+typedef struct {
+    int id;
+    int fd[2];
+} device;
+
+typedef struct {
+    int val;
+    struct int_node * next;
+} int_node;
+
+typedef struct {
+    struct int_node * head;
+    int n;
+} int_list;
+
+typedef struct {
+    int integer;
+    struct device * val;
+} pair_int_device;
+
+typedef struct {
+    struct device * val;
+    struct device_node * next;
+} device_node;
+
+typedef struct {
+    struct device_node * head;
+    int n;
+} device_list;
+
+//Dichiarazioni Funzioni
+pair_int get_int(int n, int_list * list);
+int_list * create_int_list();
+pair_int_device get_device(int n, device_list * list);
+device_list * create_device_list();
+int insert_int(int val, int n, int_list * list);
+int rm_int(int n, int_list * list);
+int insert_device(device * val, int n, device_list * list);
+int rm(int n, device_list * list);
 void str_split(char * str, char ** rt);
 void initialize_child();
 void prepare_fork(int figlio, device * devices);
@@ -47,33 +89,13 @@ void console();
 
 int type;
 
-struct pair_int{
-    int first;
-    int second;
-};
-
-struct device{
-    int id;
-    int fd[2];
-};
-
-struct int_node{
-    int val;
-    struct int_node * next;
-};
-
-struct int_list{
-    struct int_node * head;
-    int n;
-};
-
-struct pair_int get_int(int n, struct int_list * list){
-    struct pair_int rt;
+pair_int get_int(int n, int_list * list){
+    pair_int rt;
     if(list->n <= n || n < 0){
         rt.first = FALSE;
     }
     else{
-        struct int_node * temp = list->head;
+        int_node * temp = list->head;
         int i;
         for(i = 0; i < n; i++){
             temp = temp->next;
@@ -84,35 +106,20 @@ struct pair_int get_int(int n, struct int_list * list){
     return rt;
 }
 
-struct int_list * create_int_list(){
-    struct int_list * rt = (struct int_list *) malloc(sizeof(struct int_list));
+int_list * create_int_list(){
+    int_list * rt = (int_list *) malloc(sizeof(int_list));
     rt->head = NULL;
     rt->n = 0;
     return rt;
 }
 
-struct pair_int_device{
-    int integer;
-    struct device * val;
-};
-
-struct device_node{
-    struct device * val;
-    struct device_node * next;
-};
-
-struct device_list{
-    struct device_node * head;
-    int n;
-};
-
-struct pair_int_device get_device(int n, struct device_list * list){
-    struct pair_int_device rt;
+pair_int_device get_device(int n, device_list * list){
+    pair_int_device rt;
     if(list->n <= n || n < 0){
         rt.integer = FALSE;
     }
     else{
-        struct device_node * temp = list->head;
+        device_node * temp = list->head;
         int i;
         for(i = 0; i < n; i++){
             temp = temp->next;
@@ -122,28 +129,28 @@ struct pair_int_device get_device(int n, struct device_list * list){
     }
     return rt;
 }
-struct device_list * create_device_list(){
-    struct device_list * rt = (struct device_list *) malloc(sizeof(struct device_list));
+device_list * create_device_list(){
+    device_list * rt = (device_list *) malloc(sizeof(device_list));
     rt->head = NULL;
     rt->n = 0;
     return rt;
 }
 
 
-int insert_int(int val, int n, struct int_list * list){
+int insert_int(int val, int n, int_list * list){
     int rt;
     if(list->n < n || n < 0){
         rt = FALSE;
     }
     else{
-        struct int_node * new_node = (struct int_node *) malloc(sizeof(struct int_node));
+        int_node * new_node = (int_node *) malloc(sizeof(int_node));
         new_node->val = val;
         if(n == 0){
             new_node->next = list->head;
             list->head = new_node;
         }
         else{
-            struct int_node * temp = list->head;
+            int_node * temp = list->head;
             int i;
             for(i = 0; i < n-1; i++){
                 temp = temp->next;
@@ -157,13 +164,13 @@ int insert_int(int val, int n, struct int_list * list){
     return rt;
 }
 
-int rm_int(int n, struct int_list * list){
+int rm_int(int n, int_list * list){
     int rt;
     if(list->n <= n || n < 0){
         rt = FALSE;
     }
     else{
-        struct int_node * temp = list->head;
+        int_node * temp = list->head;
         if(n == 0){
             list->head = temp->next;
             free(temp);
@@ -172,7 +179,7 @@ int rm_int(int n, struct int_list * list){
             for(i = 0; i < n-1; i++){
                 temp = temp->next;
             }
-            struct int_node * temp2 = temp->next;
+            int_node * temp2 = temp->next;
             temp->next = temp2->next;
             free(temp2);
         }
@@ -182,20 +189,20 @@ int rm_int(int n, struct int_list * list){
     return rt;
 }
 
-int insert_device(struct device * val, int n, struct device_list * list){
+int insert_device(device * val, int n, device_list * list){
     int rt;
     if(list->n < n || n < 0){
         rt = FALSE;
     }
     else{
-        struct device_node * new_node = (struct device_node *) malloc(sizeof(struct device_node));
+        device_node * new_node = (device_node *) malloc(sizeof(device_node));
         new_node->val = val;
         if(n == 0){
             new_node->next = list->head;
             list->head = new_node;
         }
         else{
-            struct device_node * temp = list->head;
+            device_node * temp = list->head;
             int i;
             for(i = 0; i < n-1; i++){
                 temp = temp->next;
@@ -209,13 +216,13 @@ int insert_device(struct device * val, int n, struct device_list * list){
     return rt;
 }
 
-int rm(int n, struct device_list * list){
+int rm(int n, device_list * list){
     int rt;
     if(list->n <= n || n < 0){
         rt = FALSE;
     }
     else{
-        struct device_node * temp = list->head;
+        device_node * temp = list->head;
         if(n == 0){
             list->head = temp->next;
             free(temp);
@@ -224,7 +231,7 @@ int rm(int n, struct device_list * list){
             for(i = 0; i < n-1; i++){
                 temp = temp->next;
             }
-            struct device_node * temp2 = temp->next;
+            device_node * temp2 = temp->next;
             temp->next = temp2->next;
             free(temp2);
         }
@@ -320,7 +327,7 @@ void link(){
 void leggiconsole(){
     char * str = (char *) malloc(sizeof(char) * 110);
     char ** cmd;
-    struct device_list dvs;
+    device_list dvs;
 
     int flag = TRUE;
     while (flag) {
