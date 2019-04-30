@@ -37,12 +37,12 @@
 #define ADD 1
 
 //Struct
-typedef struct {
+typedef struct pair_int{
     int first;
     int second;
 } pair_int;
 
-typedef struct {
+typedef struct device{
     int id;
     int fd[2];
 } device;
@@ -52,12 +52,12 @@ typedef struct int_node {
     struct int_node * next;
 } int_node;
 
-typedef struct {
+typedef struct int_list{
     int_node * head;
     int n;
 } int_list;
 
-typedef struct {
+typedef struct pair_int_device{
     int integer;
     device * val;
 } pair_int_device;
@@ -67,7 +67,7 @@ typedef struct device_node{
     struct device_node * next;
 } device_node;
 
-typedef struct {
+typedef struct device_list{
     device_node * head;
     int n;
 } device_list;
