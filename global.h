@@ -35,3 +35,6 @@
 
 //funzioni
 #define ADD 1
+
+//Size funzioni
+#define MSG_SIZE 100
