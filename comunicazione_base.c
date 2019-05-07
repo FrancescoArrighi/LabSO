@@ -1,5 +1,5 @@
 //Header globale
-#include "global.h"
+#include "myheader.h"
 
 typedef struct msgbuf{
     long msg_type;

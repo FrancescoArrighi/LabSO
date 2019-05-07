@@ -1,5 +1,5 @@
 //Header globale
-#include "global.h"
+#include "myheader.h"
 
 //Struct
 typedef struct pair_int{

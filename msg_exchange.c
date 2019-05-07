@@ -1,11 +1,9 @@
 //Header
 #include "msg_exchange.h"
 
-// Permessi di accesso: come gestirli?
 // Controllo coda vuota o piena ?
 
-
-//Funzione inizializza la coda dato un id? e intero
+//Funzione inizializza la coda dato un id e intero
 //in cui viene salvato il puntatore alla coda
 void create_queue(int id, int * queue){
   key_t key;
@@ -20,14 +18,13 @@ void create_queue(int id, int * queue){
 }
 
 //Funzione che invia un messaggio alla coda identificata da queue
-//e puntata dal buffer di dimensione strlen + 1 del text
-//priorità
-void send_message(int queue, msgbuf buffer, char * text) {
-  strcpy(buffer.msg_text,text);
-  buffer.msg_type = 1;
+//e puntata dal buffer con dimensione strlen + 1 del text e con una priorita
+void send_message(int queue, msgbuf * buffer, char * text, long int priorita) {
+  strcpy(buffer->msg_text,text);
+  buffer->msg_type = priorita;
   size_t msg_size = strlen(text) + 1;
 
-  if((msgsnd(queue, &buffer, msg_size, 0)) == -1){ // invio messaggio
+  if((msgsnd(queue, buffer, msg_size, 0)) == -1){ // invio messaggio
                                                     // IPC_NOWAIT?
       printf("Errore nell'invio del messaggio\n");
       exit(1);

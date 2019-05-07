@@ -1,10 +1,15 @@
 //Header globale
-#include "global.h"
+#include "myheader.h"
+
+#ifndef MSG_EXCHANGE_H
+#define MSG_EXCHANGE_H
 
 typedef struct msgbuf{
-    long msg_type;
+    long int msg_type;
     char msg_text[MSG_SIZE];
 } msgbuf;
 
 void create_queue(int id, int * queue);
-void send_message(int queue, msgbuf buffer, char * text);
+void send_message(int queue, msgbuf * buffer, char * text, long int priorita);
+
+#endif

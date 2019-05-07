@@ -1,3 +1,6 @@
+#ifndef MYHEADER_H
+#define MYHEADER_H
+
 //Librerie che possiamo usare
 #include <stdio.h>
 #include <errno.h>
@@ -38,3 +41,5 @@
 
 //Size funzioni
 #define MSG_SIZE 100
+
+#endif
