@@ -154,7 +154,7 @@ void bulb(int id, int recupero){ //recupero booleano
       messaggio.msg_text[2] = ' ';
       messaggio.msg_text[3] = '\0';
       char str[20];
-      //printf(str, "%d" , t_start);
+      sprintf(str, "%d" , t_start);
       strcat(messaggio.msg_text, str);
       msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
       kill(idf1, SIGTERM);
