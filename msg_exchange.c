@@ -13,7 +13,7 @@ void create_queue(int id, int * queue){
       printf("Errore durante la creazione della chiave\n");
       exit(1);
   }
-  if(((*queue) = msgget(key, IPC_CREAT)) == -1){ // crea il file se non esiste e salva fa puntare queue alla coda 
+  if(((*queue) = msgget(key, IPC_CREAT)) == -1){ // crea il file se non esiste e salva fa puntare queue alla coda
       printf("Errore durante la ricezione dell'id della coda\n");
       exit(1);
   }
@@ -21,6 +21,7 @@ void create_queue(int id, int * queue){
 
 //Funzione che invia un messaggio alla coda identificata da queue
 //e puntata dal buffer di dimensione strlen + 1 del text
+//priorità
 void send_message(int queue, msgbuf buffer, char * text) {
   strcpy(buffer.msg_text,text);
   buffer.msg_type = 1;

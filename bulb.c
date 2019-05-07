@@ -57,7 +57,7 @@ void crea_queue(int id, int * queue){
   }
 }
 
-inf flag;
+int flag;
 
 void sighandle_flag1(int sig){
   flag = 1;
@@ -72,12 +72,12 @@ void bulb(int id, int recupero){ //recupero booleano
   int interruttore = FALSE;
   time_t t_start = 0;
   char nome[] = "BULB-ID";
-
+  int idf1, idf2;
 
   int queue;
   msgbuf messaggio;
 
-  if(fork() == 0){// codice figlio
+  if((idf1 = fork()) == 0){// codice figlio
     flag = 0;
     crea_queue(id, &queue);
     printf("\n----------------\npid_signal: %d\n  [ON]  => SIGUSR1\n  [OFF] => SIGUSR2\n----------------\n\n", getpid());
@@ -101,11 +101,12 @@ void bulb(int id, int recupero){ //recupero booleano
       }
     }
   }
-  else if(fork() == 0){// codice figlio
+  else if((idf2 = fork()) == 0){// codice figlio
     flag = 0;
     crea_queue(id, &queue);
     printf("\n----------------\npid_signal: %d\n  [getTime] => SIGUSR1\n----------------\n\n", getpid());
     signal(SIGUSR1, sighandle_flag1);
+    signal(SIGUSR2, sighandle_flag2);
     while (true) {
       sleep(2);
       if(flag == 1){ //accendi
@@ -127,7 +128,7 @@ void bulb(int id, int recupero){ //recupero booleano
   crea_queue(id, &queue);
 
   if(recupero){
-    printf("start\n" );
+    printf("inizio\n" );
      if((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 10, 0)) == -1) {
         printf("errore lettura ripristino\n");
     }
@@ -138,12 +139,13 @@ void bulb(int id, int recupero){ //recupero booleano
       str_split(messaggio.msg_text, &rt);
       t_start = atoi(rt[1]);
     }
+    printf("fine\n" );
   }
 
   //inizio loop
-  while ((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 0, 0)) != -1) {
+  while ((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 1, 0)) != -1) {
     //printf("accendi? %d, (%s)\n", strcmp(messaggio.msg_text, "accendi"), messaggio.msg_text);
-    printf("ok\n" );
+    printf("Livello: %d\n", messaggio.msg_type );
     if(strcmp(messaggio.msg_text, "accendi") == 0){
       stato = TRUE;
       t_start = time(NULL);
@@ -187,6 +189,9 @@ void bulb(int id, int recupero){ //recupero booleano
       sprintf(str, "%d" , t_start);
       strcat(messaggio.msg_text, str);
       msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
+      kill(idf1, SIGTERM);
+      kill(idf2, SIGTERM);
+      exit(0);
     }
     printf("\n\ninterruttore: %d\n", interruttore);
     printf("stato: %d\n", stato);
