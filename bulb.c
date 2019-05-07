@@ -59,17 +59,18 @@ void crea_queue(int id, int * queue){
 
 inf flag;
 
-void sighandle_accendi(int sig){
+void sighandle_flag1(int sig){
   flag = 1;
 }
 
-void sighandle_spegni(int sig){
+void sighandle_flag2(int sig){
   flag = 2;
 }
 
 void bulb(int id, int recupero){ //recupero booleano
-  int acceso;
-  long long int tempo_utilizzo;
+  int stato = FALSE;
+  int interruttore = FALSE;
+  time_t t_start = 0;
   char nome[] = "BULB-ID";
 
 
@@ -78,20 +79,45 @@ void bulb(int id, int recupero){ //recupero booleano
 
   if(fork() == 0){// codice figlio
     flag = 0;
-    crea_queue(id,queue);
-    signal(SIGUSR1, sighandle_accendi);
-    signal(SIGUSR2, sighandle_spegni);
+    crea_queue(id, &queue);
+    printf("\n----------------\npid_signal: %d\n  [ON]  => SIGUSR1\n  [OFF] => SIGUSR2\n----------------\n\n", getpid());
+    signal(SIGUSR1, sighandle_flag1);
+    signal(SIGUSR2, sighandle_flag2);
     while (true) {
       sleep(2);
       if(flag == 1){ //accendi
         flag = 0;
-        strcpy(messaggio.msg_text, "accendi");
+        strcpy(messaggio.msg_text, "ON");
         messaggio.msg_type = 1;
+        printf("=> %s\n", messaggio.msg_text);
         msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
       }
       else if(flag == 2){ //spegni
         flag = 0;
-        strcpy(messaggio.msg_text, "spegni");
+        strcpy(messaggio.msg_text, "OFF");
+        messaggio.msg_type = 1;
+        printf("=> %s\n", messaggio.msg_text);
+        msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
+      }
+    }
+  }
+  else if(fork() == 0){// codice figlio
+    flag = 0;
+    crea_queue(id, &queue);
+    printf("\n----------------\npid_signal: %d\n  [getTime] => SIGUSR1\n----------------\n\n", getpid());
+    signal(SIGUSR1, sighandle_flag1);
+    while (true) {
+      sleep(2);
+      if(flag == 1){ //accendi
+        flag = 0;
+        strcpy(messaggio.msg_text, "time");
+        messaggio.msg_type = 1;
+        printf("=> %s\n", messaggio.msg_text);
+        msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
+      }
+      else if(flag == 2){ //accendi
+        flag = 0;
+        strcpy(messaggio.msg_text, "RIP");
         messaggio.msg_type = 1;
         msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
       }
@@ -101,20 +127,70 @@ void bulb(int id, int recupero){ //recupero booleano
   crea_queue(id, &queue);
 
   if(recupero){
-      //codice recupero
+    printf("start\n" );
+     if((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 10, 0)) == -1) {
+        printf("errore lettura ripristino\n");
+    }
+    else{
+      stato = messaggio.msg_text[0]-'0';
+      interruttore = messaggio.msg_text[1]-'0';
+      char ** rt;
+      str_split(messaggio.msg_text, &rt);
+      t_start = atoi(rt[1]);
+    }
   }
 
   //inizio loop
   while ((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 0, 0)) != -1) {
-    if(strcmp(messaggio.msg_text, "accendi")){
-      acceso = TRUE;
+    //printf("accendi? %d, (%s)\n", strcmp(messaggio.msg_text, "accendi"), messaggio.msg_text);
+    printf("ok\n" );
+    if(strcmp(messaggio.msg_text, "accendi") == 0){
+      stato = TRUE;
+      t_start = time(NULL);
+      //printf("accendi\n" );
     }
-    else if(strcmp(messaggio.msg_text, "spegni")){
-      acceso = FALSE;
+    else if(strcmp(messaggio.msg_text, "spegni") == 0){
+      stato = FALSE;
+      //printf("spegni\n" );
     }
-    else if(strcmp(messaggio.msg_text, "get_time")){
-
+    else if(strcmp(messaggio.msg_text, "ON") == 0){
+      interruttore = TRUE;
+      if(!stato){
+        stato = TRUE;
+        t_start = time(NULL);
+      }
+      //printf("ON\n" );
     }
+    else if(strcmp(messaggio.msg_text, "OFF") == 0){
+      interruttore = FALSE;
+      if(stato){
+        stato = FALSE;
+      }
+      //printf("OFF\n" );
+    }
+    else if(strcmp(messaggio.msg_text, "time") == 0){
+      if(stato == TRUE){
+        printf("%2lf\n", difftime(time(NULL),t_start));
+      }
+      else{
+        printf("Scusa non riesco a leggere, accendi la luce\n");
+      }
+      //printf("time\n" );
+    }
+    else if(strcmp(messaggio.msg_text, "RIP") == 0){
+      messaggio.msg_type = 10;
+      messaggio.msg_text[0] = '0' + stato;
+      messaggio.msg_text[1] = '0' + interruttore;
+      messaggio.msg_text[2] = ' ';
+      messaggio.msg_text[3] = '\0';
+      char str[20];
+      sprintf(str, "%d" , t_start);
+      strcat(messaggio.msg_text, str);
+      msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
+    }
+    printf("\n\ninterruttore: %d\n", interruttore);
+    printf("stato: %d\n", stato);
+    printf("time: %d\n", t_start);
   }
   printf("Errore lettura queue BULB\n");
 }
