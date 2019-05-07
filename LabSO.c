@@ -206,27 +206,37 @@ int rm(int n, device_list * list){
     return rt;
 }
 
-void str_split(char * str, char ** rt){
-    int i = 0, j = 1;
-    for(i = 0; str[i] != '\0'; i++){
-        if(str[i] = ' '){
+int str_split(char * str, char *** rt){
+    int i = 0, j = 0, t = 0, c;
+    int flag = TRUE;
+    for(i = 0; flag; i++){
+        if((str[i] == ' ' || str[i] == '\n' || str[i] == '\0') && i > 0 && str[i-1] != ' ' && str[i-1] != '\n'){
             j++;
         }
-    }
-    rt = (char **) malloc(sizeof(char *) * j);
-    rt[0] = (char *) malloc(sizeof(char) * 110);
-    while(*str != '\0'){
-        if(*str == ' '){
-            i++;
-            j = 0;
-            rt[i] = (char *) malloc(sizeof(char) * 110);
+        if(str[i] == '\0'){
+          flag = FALSE;
         }
-        else{
-            rt[i][j] = *str;
+    }
+    (*rt) = (char **) malloc(sizeof(char *) * j);
+    j = 0;
+    flag = TRUE;
+    for(i = 0; flag; i++){
+        if((str[i] == ' ' || str[i] == '\n' || str[i] == '\0') && i > 0 && str[i-1] != ' ' && str[i-1] != '\n'){
+            (*rt)[j] = (char *) malloc(sizeof(char *) * (i-t+1));
+            for (c = 0; t+c < i; c++) {
+                (*rt)[j][c] = str[t+c];
+            }
+            (*rt)[j][c] = '\0';
             j++;
         }
+        if(str[i] == ' '){
+            t = i+1;
+        }
+        else if(str[i] == '\0'){
+          flag = FALSE;
+        }
     }
-
+    return j;
 }
 
 void hub(){
