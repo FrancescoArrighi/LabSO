@@ -4,6 +4,7 @@
 #ifndef MSG_EXCHANGE_H
 #define MSG_EXCHANGE_H
 
+//Struct: buffer che punta alla coda queue 
 typedef struct msgbuf{
     long int msg_type;
     char msg_text[MSG_SIZE];
