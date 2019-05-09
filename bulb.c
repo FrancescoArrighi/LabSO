@@ -1,3 +1,4 @@
+//Header
 #include "bulb.h"
 
 int flag;
@@ -9,40 +10,6 @@ void sighandle_flag1(int sig){
 void sighandle_flag2(int sig){
   flag = 2;
 }
-//Da definire da un'altra parte
-int str_split(char * str, char *** rt){
-    int i = 0, j = 0, t = 0, c;
-    int flag = TRUE;
-    for(i = 0; flag; i++){
-        if((str[i] == ' ' || str[i] == '\n' || str[i] == '\0') && i > 0 && str[i-1] != ' ' && str[i-1] != '\n'){
-            j++;
-        }
-        if(str[i] == '\0'){
-          flag = FALSE;
-        }
-    }
-    (*rt) = (char **) malloc(sizeof(char *) * j);
-    j = 0;
-    flag = TRUE;
-    for(i = 0; flag; i++){
-        if((str[i] == ' ' || str[i] == '\n' || str[i] == '\0') && i > 0 && str[i-1] != ' ' && str[i-1] != '\n'){
-            (*rt)[j] = (char *) malloc(sizeof(char *) * (i-t+1));
-            for (c = 0; t+c < i; c++) {
-                (*rt)[j][c] = str[t+c];
-            }
-            (*rt)[j][c] = '\0';
-            j++;
-        }
-        if(str[i] == ' '){
-            t = i+1;
-        }
-        else if(str[i] == '\0'){
-          flag = FALSE;
-        }
-    }
-    return j;
-}
-
 
 void bulb(int id, int recupero){ //recupero booleano
   int stato = FALSE;
@@ -148,7 +115,6 @@ void bulb(int id, int recupero){ //recupero booleano
       //printf("time\n" );
     }
     else if(strcmp(messaggio.msg_text, "RIP") == 0){
-      messaggio.msg_type = 10;
       messaggio.msg_text[0] = '0' + stato;
       messaggio.msg_text[1] = '0' + interruttore;
       messaggio.msg_text[2] = ' ';
@@ -156,7 +122,7 @@ void bulb(int id, int recupero){ //recupero booleano
       char str[20];
       sprintf(str, "%d" , t_start);
       strcat(messaggio.msg_text, str);
-      msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
+      send_message(queue, &messaggio, messaggio.msg_text, 10);
       kill(idf1, SIGTERM);
       kill(idf2, SIGTERM);
       exit(0);
