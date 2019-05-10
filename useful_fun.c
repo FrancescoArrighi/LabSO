@@ -1,4 +1,4 @@
-//Header 
+//Header
 #include "useful_fun.h"
 
 pair_int get_int(int n, int_list * list){
@@ -176,7 +176,40 @@ int str_split(char * str, char *** rt){
             (*rt)[j][c] = '\0';
             j++;
         }
-        if(str[i] == ' '){
+        if(str[i] == ' ' || str[i] == '\n'){
+            t = i+1;
+        }
+        else if(str[i] == '\0'){
+          flag = FALSE;
+        }
+    }
+    return j;
+}
+
+int protocoll_parser(char * str, char *** rt){
+    int i = 0, j = 0, t = 0, c;
+    int flag = TRUE;
+    for(i = 0; flag; i++){
+        if((str[i] == '\n' || str[i] == '\0') && i > 0 && str[i-1] != '\n'){
+            j++;
+        }
+        if(str[i] == '\0'){
+          flag = FALSE;
+        }
+    }
+    (*rt) = (char **) malloc(sizeof(char *) * j);
+    j = 0;
+    flag = TRUE;
+    for(i = 0; flag; i++){
+        if((str[i] == '\n' || str[i] == '\0') && i > 0 && str[i-1] != '\n'){
+            (*rt)[j] = (char *) malloc(sizeof(char *) * (i-t+1));
+            for (c = 0; t+c < i; c++) {
+                (*rt)[j][c] = str[t+c];
+            }
+            (*rt)[j][c] = '\0';
+            j++;
+        }
+        if(str[i] == '\n'){
             t = i+1;
         }
         else if(str[i] == '\0'){
