@@ -45,15 +45,6 @@ int str_split(char * str, char *** rt){
 }
 
 
-
-int main(){
-  fridge(1, 1);
-  return 0;
-}
-
-
-
-
 void fridge(int id, int recupero){ //recupero booleano
   int stato = FALSE;
   int interruttore = FALSE;
@@ -170,11 +161,13 @@ void fridge(int id, int recupero){ //recupero booleano
       stato = TRUE;
       t_start = time(NULL);
       printf("Creazione figlio allarme\n");
-      if((allarme = fork())==0){
-	printf("Chiusura automatica fra %d secondi\n", delay);
-	sleep(delay);
-	send_message(queue, &messaggio, "spegni", 1);
-	exit(0);
+      if(allarme == -1){ // posso creare un nuovo figlio solo se non ho altri figli pendenti
+	if((allarme = fork())==0){
+	  printf("Chiusura automatica fra %d secondi\n", delay);
+	  sleep(delay);
+	  send_message(queue, &messaggio, "spegni", 1);
+	  exit(0);
+	}
       }
       printf("accendi\n" );
     }
@@ -193,11 +186,13 @@ void fridge(int id, int recupero){ //recupero booleano
         t_start = time(NULL);
       }
       printf("Creazione figlio allarme\n");
-      if((allarme = fork())==0){
-	printf("Chiusura automatica fra %d secondi\n", delay);
-	sleep(delay);
-	send_message(queue, &messaggio, "spegni", 1);
-	exit(0);
+      if(allarme == -1){ // posso creare un nuovo figlio solo se non ho altri figli pendenti
+	if((allarme = fork())==0){
+	  printf("Chiusura automatica fra %d secondi\n", delay);
+	  sleep(delay);
+	  send_message(queue, &messaggio, "spegni", 1);
+	  exit(0);
+	}
       }
       
       printf("ON\n" );
