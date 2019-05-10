@@ -27,17 +27,16 @@ long long int int_string(long long int a, char ** str){
   return (i+1);
 }
 
-long long int string_int(char ** str){
-  int segno = (*str)[0]-1;
+long long int string_int(char * str){
+  int segno = str[0]-1;
 
   long long int i;
   long long int rt = 0;
-  for(i = 0; (*str)[i] != '\0'; i++);
+  for(i = 0; str[i] != '\0'; i++);
   i--;
   while (i > 0) {
     rt *= 127;
-    rt += (*str)[i]-1;
-    //printf("%d\n", (*str)[i]);
+    rt += str[i]-1;
     i--;
   }
   if(segno == 0){
