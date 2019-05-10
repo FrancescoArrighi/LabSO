@@ -218,3 +218,33 @@ int protocoll_parser(char * str, char *** rt){
     }
     return j;
 }
+
+//ritorna la dimensione della stringa (compreso il terminatore) e inserisce il risultato in str
+//NB: la funzione va chiamata così itoa(numero, &str); dove str è un (char *)
+int itoa(int n, char **str){
+  int i, temp, segno = 0;
+  if(n < 0){
+    segno = 1;
+    n *= -1;
+  }
+
+  temp = n;
+  for(i = segno; temp > 0; i++){
+    temp =  temp/10;
+  }
+  (*str) = (char *) malloc(sizeof(char) * (i+1));
+
+  temp = n;
+  (*str)[i] = '\0';
+
+  i--;
+  for(; temp > 0; i--){
+    (*str)[i] = temp%10 + '0';
+    temp = temp/10;
+  }
+
+  if(segno){
+    (*str)[i] = '-';
+  }
+  return i+1;
+}
