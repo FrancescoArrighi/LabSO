@@ -285,6 +285,15 @@ void risposta(){
   }
 }
 
+char * plus_n (char * a) {
+  char * b = (char *) malloc (sizeof(char) *(strlen(a)+2));
+  strcpy(b,a);
+  b[strlen(a)] = '\n';
+  b[strlen(a)+1] = '\0';
+
+  return b;
+}
+
 void send_prl(char * prl, int dest, int src, int dim, int destid, int srcid, int cod){
   char tmp[20];
   int n = 6;
