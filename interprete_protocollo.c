@@ -285,6 +285,35 @@ void risposta(){
   }
 }
 
+void send_prl(char * prl, int dest, int src, int dim, int destid, int srcid, int cod){
+  char tmp[20];
+  int n = 6;
+
+  for (int i = 0; (i < n); i++) {
+    if (i==0) { //Tipologia destinatario - prl[0]
+      sprintf(tmp, "%d", dest); //itoa(dest,tmp);
+    }
+    else if (i==1) { //Tipologia mittente - prl[2]
+      sprintf(tmp, "%d", src); //itoa(src,tmp);
+    }
+    else if (i==2) { //Dim prl (3 char) - prl[4]
+      sprintf(tmp, "%d", dim); //itoa(dim,tmp);
+    }
+    else if (i==3) { //ID destinatario - prl[8]
+      sprintf(tmp, "%d", destid); //itoa(destid,tmp);
+    }
+    else if (i==4) { //ID mittente - prl[19]
+      sprintf(tmp, "%d", srcid); //itoa(srcid,tmp);
+    }
+    else if (i==5) { //Codice - prl[30]
+      // I codici che iniziano con lo zero sono un problema
+      sprintf(tmp, "%d", cod); //itoa(cod,tmp);
+    }
+    strcat(prl,plus_n(tmp));
+  }
+
+}
+
 void lampadina_troll(){
   int queue;
   crea_queue(100,&queue);
