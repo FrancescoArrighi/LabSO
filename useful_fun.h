@@ -49,6 +49,7 @@ int insert_int(int val, int n, int_list * list);
 int rm_int(int n, int_list * list);
 int insert_device(device * val, int n, device_list * list);
 int rm(int n, device_list * list);
-void str_split(char * str, char ** rt);
+int str_split(char * str, char *** rt);
+int protocoll_parser(char * str, char *** rt);
 
 #endif
