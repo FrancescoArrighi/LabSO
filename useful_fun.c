@@ -223,28 +223,36 @@ int protocoll_parser(char * str, char *** rt){
 //NB: la funzione va chiamata così itoa(numero, &str); dove str è un (char *)
 int itoa(int n, char **str){
   int i, temp, segno = 0;
-  if(n < 0){
-    segno = 1;
-    n *= -1;
+  if(n == 0){
+    i = 1;
+    (*str) = (char *) malloc(sizeof(char) * (i+1));
+    (*str)[0] = '0';
+    (*str)[1] = '\0';
   }
+  else{
+    if(n < 0){
+      segno = 1;
+      n *= -1;
+    }
 
-  temp = n;
-  for(i = segno; temp > 0; i++){
-    temp =  temp/10;
-  }
-  (*str) = (char *) malloc(sizeof(char) * (i+1));
+    temp = n;
+    for(i = segno; temp > 0; i++){
+      temp =  temp/10;
+    }
+    (*str) = (char *) malloc(sizeof(char) * (i+1));
 
-  temp = n;
-  (*str)[i] = '\0';
+    temp = n;
+    (*str)[i] = '\0';
 
-  i--;
-  for(; temp > 0; i--){
-    (*str)[i] = temp%10 + '0';
-    temp = temp/10;
-  }
+    i--;
+    for(; temp > 0; i--){
+      (*str)[i] = temp%10 + '0';
+      temp = temp/10;
+    }
 
-  if(segno){
-    (*str)[i] = '-';
+    if(segno){
+      (*str)[i] = '-';
+    }
   }
   return i+1;
 }
