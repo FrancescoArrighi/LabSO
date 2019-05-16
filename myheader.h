@@ -25,12 +25,13 @@
 #define FALSE 0
 
 //dispositivi
-#define CONTROLLER 0
-#define HUB 1
-#define TIMER 2
-#define BULB 3
-#define WINDOW 4
-#define FRIDGE 5
+#define DEFAULT 0
+#define CONTROLLER 1
+#define HUB 2
+#define TIMER 3
+#define BULB 4
+#define WINDOW 5
+#define FRIDGE 6
 
 //pipes
 #define READ 0
@@ -41,5 +42,17 @@
 
 //Size funzioni
 #define MSG_SIZE 100
+
+//messaggio base
+#define MSG_TYPE_DESTINATARIO 0
+#define MSG_TYPE_MITTENTE 1
+#define MSG_ID_DESTINATARIO 2
+#define MSG_ID_MITTENTE 3
+#define MSG_OP 4
+
+//messaggio info
+#define MSG_INF 1 //codice messaggio
+#define MSG_INF_ID_PADRE 5
+#define MSG_INF_CONTROLDV_NFIGLI 6
 
 #endif
