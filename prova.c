@@ -371,8 +371,8 @@ int itoa(int n, char **str){
   if(n == 0){
     i = 1;
     (*str) = (char *) malloc(sizeof(char) * (i+1));
-    str[0] = '0';
-    str[1] = '\0';
+    (*str)[0] = '0';
+    (*str)[1] = '\0';
   }
   else{
     if(n < 0){
@@ -464,31 +464,36 @@ void risposta(){
 
 int codice_messaggio(char ** msg){
   int rt = atoi(msg[MSG_OP]);
-  if(rt) >= 10000){
-    rt += atoi(MSG_TYPE_DESTINATARIO) * 100000;
+  if((rt) >= 10000){
+    rt += atoi(msg[MSG_TYPE_DESTINATARIO]) * 100000;
   }
   return rt;
 }
 
 void crea_messaggio_base(char ** msg, int type_dest, int type_mit, int id_dest, int id_mit, int codice_op){
-  char * td = itoa(type_dest);
-  char * tm = itoa(type_mit);
-  char * id_d = itoa(id_dest);
-  char * id_m = itoa(id_mit);
+  char * td;
+  itoa(type_dest, &td);
+  char * tm;
+  itoa(type_mit, &tm);
+  char * id_d;
+  itoa(id_dest, &id_d);
+  char * id_m;
+  itoa(id_mit, &id_m);
   codice_op = codice_op % 100000; // rimuovo il valore "tipo dispositivo" nel caso presente NB: il tipo mittente è passato come parametro separato
-  char * cod_op = itoa(codice_op);
-  (*msg) = (char *) malloc(sizeof(char) * (strlen(td) + 1 + strlen(tm) + 1 + strlen(id_d) + 1 + strlen(id_m) + 1 + strlen(cod_op) + 2);
+  char * cod_op;
+  itoa(codice_op, &cod_op);
+  (*msg) = (char *) malloc(sizeof(char) * (strlen(td) + 1 + strlen(tm) + 1 + strlen(id_d) + 1 + strlen(id_m) + 1 + strlen(cod_op) + 2));
   (*msg)[0] = '\0';
   strcat((*msg), td);
-  strcat((*msg), '\n');
+  strcat((*msg), "\n");
   strcat((*msg), tm);
-  strcat((*msg), '\n');
+  strcat((*msg), "\n");
   strcat((*msg), id_d);
-  strcat((*msg), '\n');
+  strcat((*msg), "\n");
   strcat((*msg), id_m);
-  strcat((*msg), '\n');
+  strcat((*msg), "\n");
   strcat((*msg), cod_op);
-  strcat((*msg), '\n');
+  strcat((*msg), "\n");
 }
 
 void get_all_info(int_list *queue){
