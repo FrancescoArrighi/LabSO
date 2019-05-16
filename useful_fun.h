@@ -51,5 +51,8 @@ int insert_device(device * val, int n, device_list * list);
 int rm(int n, device_list * list);
 int str_split(char * str, char *** rt);
 int protocoll_parser(char * str, char *** rt);
+int itoa(int n, char **str);
+int codice_messaggio(char ** msg);
+void crea_messaggio_base(char ** msg, int type_dest, int type_mit, int id_dest, int id_mit, int codice_op);
 
 #endif
