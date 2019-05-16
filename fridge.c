@@ -152,7 +152,7 @@ void risposta(){
   printf("-----------Fine Centralina--------------\n\n");
 }
 
-void send_info_fridge(char * header, Frigo *frigo){ //invia info
+void send_info_fridge(char * header, fridge *frigo){ //invia info
   printf("Send info\n");
   char * str = (char * ) malloc(sizeof(char) * 100);
 
@@ -205,13 +205,13 @@ int main(){
 */
 
 void fridge(int id, int recupero){ //recupero booleano
-  Frigo frigo;
+  fridge frigo;
   frigo.id = id;
   frigo.stato = FALSE;
   frigo.interruttore = FALSE;
   frigo.termostato = 3;// temperatura interna
   frigo.time = 0;
-  frigo.nome = (char*)malloc(sizeof(char)*20);
+  frigo.nome = (char * ) malloc( sizeof(char) * 20);
   sprintf(frigo.nome, "FRIDGE-%d", id);
   frigo.delay = 5; //tempo di chiusura automatica
   frigo.percentuale = 0; // percentuale di riempimento
@@ -231,8 +231,8 @@ void fridge(int id, int recupero){ //recupero booleano
     }
     else{
       printf("recupero\n");
-      char **msg;
-      int n=protocoll_parser(messaggio.msg_text, &msg);
+      char ** msg;
+      int n = protocoll_parser(messaggio.msg_text, &msg);
       frigo.stato = atoi(msg[0]);
       frigo.interruttore = atoi(msg[1]);
       frigo.termostato = atoi(msg[2]);
@@ -258,8 +258,7 @@ void fridge(int id, int recupero){ //recupero booleano
       printf("nome: %s\n", frigo.nome);
       */
 
-      msgctl(queue, IPC_RMID, NULL); //rimuovo la coda precedentemente creata
-      create_queue(frigo.id, &queue); //creo una nuova coda con id recuperato
+      //msgctl(queue, IPC_RMID, NULL); //rimuovo la coda precedentemente creata
     }
     printf("fine\n" );
   }
@@ -267,7 +266,7 @@ void fridge(int id, int recupero){ //recupero booleano
   //inizio loop
   while((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 1, 0)) != -1) {
     char ** msg;
-    char *header = (char*) malloc(sizeof(char) * 50);
+    char * header = (char*) malloc(sizeof(char) * 50);
     int n = protocoll_parser(messaggio.msg_text, &msg);
     /*int i;
     printf("------Header ricevuto\n");
@@ -348,7 +347,7 @@ void fridge(int id, int recupero){ //recupero booleano
 }
 
 
-void apri_frigo(Frigo *frigo, time_t *t_start, int *allarme, int delay_recupero){
+void apri_frigo(fridge *frigo, time_t *t_start, int *allarme, int delay_recupero){
   frigo->stato = TRUE;
   if(!delay_recupero){ //se non sono in recupero
     time(t_start); //salvo tempo inizio apertura
@@ -366,7 +365,7 @@ void apri_frigo(Frigo *frigo, time_t *t_start, int *allarme, int delay_recupero)
     int queue;
     msgbuf messaggio;
     char * str = (char * ) malloc(sizeof(char) * 100);
-    char *id_frigo = (char*) malloc(sizeof(char)*10);
+    char * id_frigo = (char * ) malloc(sizeof(char) * 10);
     sprintf(id_frigo, "%d", frigo->id);
     create_queue(frigo->id, &queue);
     send_prl_spec(str, "6", "0", "50", id_frigo, "0", "10001", "0");
@@ -378,7 +377,7 @@ void apri_frigo(Frigo *frigo, time_t *t_start, int *allarme, int delay_recupero)
   }
 }
 
-void chiudi_frigo(Frigo *frigo, time_t *t_start, int *allarme){
+void chiudi_frigo(fridge *frigo, time_t *t_start, int *allarme){
   frigo->stato = FALSE;
   *t_start = 0; //resetto tempo di inizio apertura
   frigo->time = 0; //resetto eventuale tempo di apertura
@@ -389,33 +388,33 @@ void chiudi_frigo(Frigo *frigo, time_t *t_start, int *allarme){
   }
 }
 
-void set_stato(int valore, Frigo *frigo, time_t *t_start, int *allarme){ // valore: nuovo stato [1-apri], [0-chiudi]
+void set_stato(int valore, fridge *frigo, time_t *t_start, int *allarme){ // valore: nuovo stato [1-apri], [0-chiudi]
   printf("----Setstato\n");
   if((valore == TRUE) && (frigo->stato == FALSE)){ //apro un frigo chiuso
     apri_frigo(frigo, t_start, allarme, 0);
-    printf("Frigo aperto con successo\n");
+    printf("fridge aperto con successo\n");
   }
   else if((valore == FALSE) && (frigo->stato == TRUE)){ // chiudo un frigo aperto
     chiudi_frigo(frigo, t_start, allarme);
-    printf("Frigo chiuso con successo\n");
+    printf("fridge chiuso con successo\n");
   }
 }
 
-void set_interruttore(int valore, Frigo *frigo, time_t *t_start, int *allarme){
+void set_interruttore(int valore, fridge *frigo, time_t *t_start, int *allarme){
    printf("----Set interruttore\n");
    if((valore == TRUE) && (frigo->stato == FALSE)){ //apro un frigo chiuso
     frigo->interruttore = TRUE;
     apri_frigo(frigo, t_start, allarme, 0);
-    printf("Frigo aperto manualmente con successo\n");
+    printf("fridge aperto manualmente con successo\n");
   }
   else if((valore == FALSE) && (frigo->stato == TRUE)){ //chiudo un frigo aperto
     frigo->interruttore = FALSE;
     chiudi_frigo(frigo, t_start, allarme);
-    printf("Frigo chiuso munualmente con successo\n");
+    printf("fridge chiuso munualmente con successo\n");
   }
 }
 
-void set_termostato(int valore, Frigo *frigo){
+void set_termostato(int valore, fridge *frigo){
   printf("Cambio Temperatura interna\n");
 
   frigo->termostato = valore;
@@ -423,7 +422,7 @@ void set_termostato(int valore, Frigo *frigo){
   printf("Temperatura combiata con successo\n");
 }
 
-void set_delay(int valore, Frigo *frigo){
+void set_delay(int valore, fridge *frigo){
   printf("Cambio delay\n");
   if(valore > 0){
     frigo->delay = valore;
@@ -435,7 +434,7 @@ void set_delay(int valore, Frigo *frigo){
   printf("Delay cambiato con successo\n");
 }
 
-void set_perc(int valore, Frigo *frigo){
+void set_perc(int valore, fridge *frigo){
   int new_perc;
   new_perc = frigo->percentuale + valore;
   if((new_perc >= 0) && (new_perc <= 100)){
@@ -443,14 +442,14 @@ void set_perc(int valore, Frigo *frigo){
     frigo->percentuale = new_perc;
   }
   else if(new_perc > 100){
-    printf("Frigo troppo pieno\n");
+    printf("fridge troppo pieno\n");
   }
   else if(new_perc < 0){
     printf("Errore: percentuale di riempimento sotto zero\n");
   }
 }
 
-void duplicate(int valore, Frigo *frigo, time_t t_start){
+void duplicate(int valore, fridge *frigo, time_t t_start){
   printf("---------Duplicate--------\n");
   int queue;
   msgbuf messaggio;
@@ -527,7 +526,7 @@ char * plus_only_n (char * a) {
   return b;
 }
 
-void send_prl_dati(char* prl, Frigo *frigo){ //concateno dati da inviare
+void send_prl_dati(char* prl, fridge *frigo){ //concateno dati da inviare
   char* buf = (char*) malloc(sizeof(char)*20);
   for(int i=0; i<7; i++){
     switch(i){
