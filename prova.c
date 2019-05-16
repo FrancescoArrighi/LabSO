@@ -56,25 +56,18 @@ typedef struct pair_int{
     int second;
 } pair_int;
 
-typedef struct tdn_list_node{
-    tree_device_node * val;
-    tdn_list_node * next;
-} tdn_list_node;
-
-typedef struct tdn_list{
-    tdn_list_node * head;
-    int n;
-} tdn_list;
-
 typedef struct tree_device_node{
     int id;
     char * nome;
     int type;
-    tdn_list * figli;
-} tree_device;
+    int pid;
+    int nfigli;
+    struct tree_device_node ** figli;
+} tree_device_node;
+
 
 typedef struct tree_device{
-    tree_device_node * root;
+    struct tree_device_node * root;
 } tree_device;
 
 typedef struct int_node {
@@ -87,21 +80,6 @@ typedef struct int_list{
     int n;
 } int_list;
 
-typedef struct pair_int_device{
-    int integer;
-    device * val;
-} pair_int_device;
-
-typedef struct device_node{
-    device * val;
-    struct device_node * next;
-} device_node;
-
-typedef struct device_list{
-    device_node * head;
-    int n;
-} device_list;
-
 typedef struct msgbuf{
     long int msg_type;
     char msg_text[MSG_SIZE];
@@ -113,28 +91,7 @@ tree_device * create_tree_device(){
     return rt;
 }
 
-tdn_list * create_tdn_list(){
-  tdn_list * rt = (tdn_list *) malloc(sizeof(tdn_list));
-  rt->head = NULL;
-}
-
- int tdn_list_get(int n, tree_device_node ** node ,tdn_list * l){
-  int rt = TRUE;
-  if(l->n >= n || n < 0){
-    rt = FALSE;
-  }
-  else{
-    int i;
-    tdn_list_node * temp = l->head;
-    for(i = 0; i < n; i++){
-      temp = temp->next;
-    }
-    node = &(temp->val);
-  }
-  return rt;
-}
-
-tree_device_node * tree_get_node(tree_device_node tree, int id){
+tree_device_node * tree_get_node(tree_device_node * tree, int id){
   tree_device_node * rt = NULL;
   if(tree != NULL){
     if(tree->id == id){
@@ -142,55 +99,37 @@ tree_device_node * tree_get_node(tree_device_node tree, int id){
     }
     else{
       int i;
-      tree_device_node * temp;
-      for(i = 0; i < tree->figli->n && rt == NULL; i++){
-        temp = tdn_list_get(i, tree->figli);
-        rt = tree_get_node(temp, id);
+      for(i = 0; i < tree->nfigli && rt == NULL && tree->figli[i] != NULL; i++){
+        rt = tree_get_node(tree->figli[i], id);
       }
     }
   }
   return rt;
 }
 
-int insert_tdn_list(tree_device_node * val, int n; tdn_list * l){
-  int rt = TRUE;
-  if(l->n < n || n < 0){
-    rt = FALSE;
-  }
-  else{
-    tdn_list_node * node = (tdn_list_node *) malloc(sizeof(tdn_list_node));
-    node->next = NULL;
-    node->val = val;
-    if(n == 0){
-      node->next = l->head;
-      l->head = node;
-    }
-    else{
-      tdn_list_node * temp = l->head;
-      for(i = 0; i < n-1; i++){
-        temp = temp->next;
-      }
-      node->next = temp->next;
-      temp->next = node;
-    }
-  }
-  return rt;
-}
-
-int tree_insert_device(tree_device tree, int id_padre, int id, int type, char * name){
+int tree_insert_device(tree_device * tree, int id_padre, int id, int pid, int n_figli, int type, char * name){
     int rt = TRUE;
     tree_device_node * node = (tree_device_node *) malloc(sizeof(tree_device_node));
     node->id = id;
     node->type = type;
-    node->name = (char *) malloc(sizeof(char) * (strlen(name)+1));
-    strcpy(node->name, name);
-    node->figli = create_tdn_list();
+    node->pid = pid;
+    node->nome = (char *) malloc(sizeof(char) * (strlen(name)+1));
+    strcpy(node->nome, name);
+    node->nfigli = n_figli;
+    node->figli = (tree_device_node ** ) malloc(sizeof(tree_device_node *) * n_figli);
+    int i;
+    for(i = 0; i < n_figli; i++){
+      node->figli[i] = NULL;
+    }
     if(id_padre <  0){ //inserisci in testa
       tree->root = node;
     }
     else{
       tree_device_node * padre = tree_get_node(tree->root, id);
-      insert_tdn_list(node, padre->figli->n, padre->figli);
+      for(i = 0; i < padre->nfigli && padre->figli[i] == NULL; i++);
+      if(i < padre->nfigli){
+        padre->figli[i] = node;
+      }
     }
     return rt;
 }
@@ -226,23 +165,21 @@ void tree_print_branch(tree_device_node * node, char * str){
     strcpy(str_type, "ND");
   }
 
-  printf("%s\n%s-> %s : %s\n",str, str, node->nome, str_type);
+  printf("%s\n%s-> %s : %s : %d\n",str, str, node->nome, str_type, node->pid);
 
   char * str_temp = malloc(sizeof(char) * (strlen(str)+2));
   strcpy(str_temp,str);
   str_temp[strlen(str)] = "|";
   str_temp[strlen(str)+1] = "\0";
-
-  tdn_list_node * next = node->figli->head;
-  for(i = 0; i < node->figli->n && next != NULL; i++){
-    tree_print_branch(next->val, str_temp);
-    next = next->next;
+  int i;
+  for(i = 0; i < node->nfigli && node->figli[i] != NULL; i++){
+    tree_print_branch(node->figli[i], str_temp);
   }
   printf("%s/\n");
 }
 
 void tree_print(tree_device * tree){
-  tree_print_branch(tree->head, "");
+  tree_print_branch(tree->root, "");
 }
 
 //ritorna TRUE o FAlSE in base se è riuscito o meno a leggere l'integer
@@ -385,6 +322,18 @@ int protocoll_parser(char * str, char *** rt){
         }
     }
     return j;
+}
+
+void crea_queue(int id, int * queue){
+  key_t key;
+  if((key = ftok("/tmp/", id)) == -1){ // crea la chiave
+      printf("errore 1\n");
+      exit(1);
+  }
+  if(((*queue) = msgget(key, IPC_CREAT)) == -1){ // crea il file se non esiste
+      printf("errore 2\n");
+      exit(1);
+  }
 }
 
 void crea_queue(int id, int * queue){
