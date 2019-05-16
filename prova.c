@@ -47,9 +47,9 @@
 #define MSG_OP 4
 
 //messaggio info
-#define MSG_INFO 1 //codice messaggio
-#define MSG_INFO_IDPADRE 5
-#define MSG_INFO_CONTROLDV_NFIGLI 6
+#define MSG_INF 1 //codice messaggio
+#define MSG_INF_ID_PADRE 5
+#define MSG_INF_CONTROLDV_NFIGLI 6
 //Struct
 typedef struct pair_int{
     int first;
@@ -496,7 +496,7 @@ void get_all_info(int_list *queue){
   int q, i;
   messaggio.msg_type = 1;
   char * msg;
-  crea_messaggio_base(&msg, 0, CONTROLLER, 0, CONTROLLER, MSG_INFO);
+  crea_messaggio_base(&msg, 0, CONTROLLER, 0, CONTROLLER, MSG_INF);
   strcpy(messaggio.msg_text, msg);
   for(i = 0; get_int(i, q, queue); i++){
     msgsnd(q, &messaggio, sizeof(messaggio.msg_text), 0);
@@ -507,10 +507,10 @@ void get_all_info(int_list *queue){
   for(; i > 0; i--){
     msgrcv(queue, &messaggio, sizeof(messaggio.msg_text), 1, 0);
     int dim = protocoll_parser(messaggio.msg_text, &msg);
-    if(codice_messaggio(msg) == MSG_INFO){
-      tree_insert_device(tree, atoi(msg[MSG_INFO_IDPADRE]), atoi(msg[MSG_ID_MITTENTE]), atoi(msg[MSG_TYPE_MITTENTE]), msg[MSG_INFO_NOME]);
+    if(codice_messaggio(msg) == MSG_INF){
+      tree_insert_device(tree, atoi(msg[MSG_INF_IDPADRE]), atoi(msg[MSG_ID_MITTENTE]), atoi(msg[MSG_TYPE_MITTENTE]), msg[MSG_INF_NOME]);
       if(atoi(msg[MSG_TYPE_MITTENTE]) == HUB || atoi(msg[MSG_TYPE_MITTENTE]) == TIMER){
-        i += atoi(msg[MSG_INFO_CONTROLDV_NFIGLI]);
+        i += atoi(msg[MSG_INF_CONTROLDV_NFIGLI]);
       }
     }
   }
@@ -676,10 +676,10 @@ void hub(int id, int recupero, char * nome){
   char ** msg;
   while ((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 1, 0)) != -1) {
     protocoll_parser(messaggio.msg_text, msg);
-    if(atoi(msg[MSG_OP]) == MSG_INFO && atoi(msg[MSG_ID_DESTINATARIO]) == id){ //richiesta info su me stesso
+    if(atoi(msg[MSG_OP]) == MSG_INF && atoi(msg[MSG_ID_DESTINATARIO]) == id){ //richiesta info su me stesso
 
     }
-    else if(atoi(msg[MSG_OP]) == MSG_INFO && atoi(msg[MSG_ID_DESTINATARIO]) == 0){ //richiesta info su tutti
+    else if(atoi(msg[MSG_OP]) == MSG_INF && atoi(msg[MSG_ID_DESTINATARIO]) == 0){ //richiesta info su tutti
 
     }
     else if(FALSE){ //codice RIP da implementare
