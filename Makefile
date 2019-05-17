@@ -1,5 +1,4 @@
-objects = main.o fridge.o msg_exchange.o useful_fun.o\
-#hub.o timer.o 
+objects = main.o fridge.o msg_exchange.o useful_fun.o hub.o timer.o 
 
 CC = gcc
 CFLAGS = -std=gnu90
