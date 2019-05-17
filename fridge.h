@@ -1,7 +1,7 @@
 //Header globale
 #include "myheader.h"
-//#include "msg_exchange.h"
-//#include "useful_fun.h"
+#include "msg_exchange.h"
+#include "useful_fun.h"
 
 #ifndef FRIDGE_H
 #define FRIDGE_H
