@@ -1,7 +1,7 @@
 ##OBJECTS = main.o fridge.o msg_exchange.o useful_fun.o hub.o timer.o
 SRCDIR = src
 SOURCES  := $(wildcard $(SRCDIR)/*.c)
-OBJECTS  := $(SOURCES:$(SRCDIR)/%.c=$(SRCDIR)/%.o)
+OBJECTS  := $(SOURCES:.c=.o)
 
 CC = gcc
 CFLAGS = -std=gnu90
@@ -14,7 +14,7 @@ help :
 	@echo $(info)
 
 build : $(OBJECTS)
-	$(CC) $(CFLAGS) $(OBJECTS)
+	$(CC) $(CFLAGS) $(SRCDIR)/main.c
 
 main.o : myheader.h main.c
 	$(CC) $(CFLAGS) -c main.c
