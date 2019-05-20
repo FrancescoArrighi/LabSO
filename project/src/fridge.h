@@ -29,6 +29,9 @@
 #define FRIDGE_SET_PERC 610005
 #define FRIDGE_RECUPERO 610006
 
+
+#define FIFO "/tmp/myfifo"
+
 typedef struct _frigo{
   int id; // id dispositivo
   int stato;
@@ -40,7 +43,7 @@ typedef struct _frigo{
   char * nome;
 } t_frigo;
 
-void fridge(int id, int recupero);
+void fridge(int id, int recupero, char *nome);
 void concat_dati(char* prl, t_frigo *frigo); //funzione che concatena i dati del frigo (quelli di info)
 int controlla_fridge(char ** str, int id);
 char * plus_only_n (char * a);
