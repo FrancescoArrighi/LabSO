@@ -60,6 +60,12 @@
 
 #define MSG_OVERRIDE
 
+#define MSG_AGGIUNGI
+#define MSG_AGGIUNGI_IDF
+
+#define MSG_GET_TERMINAL_TYPE
+#define MSG_MYTYPE
+
 #define MSG_INF_HUB
 #define MSG_INF_TIMER
 #define MSG_INF_BULB
@@ -153,27 +159,27 @@ int tree_insert_device(tree_device * tree, int id_padre, int id, int pid, int n_
 
 void tree_print_branch(tree_device_node * node, char * str){
   char * str_type;
-  if(node->nome == CONTROLLER){
+  if(node->type == CONTROLLER){
     str_type = (char *) malloc(sizeof(char) * 11);
     strcpy(str_type, "Controller");
   }
-  else if(node->nome == HUB){
+  else if(node->type == HUB){
     str_type = (char *) malloc(sizeof(char) * 4);
     strcpy(str_type, "Hub");
   }
-  else if(node->nome == TIMER){
+  else if(node->type == TIMER){
     str_type = (char *) malloc(sizeof(char) * 6);
     strcpy(str_type, "Timer");
   }
-  else if(node->nome == BULB){
+  else if(node->type == BULB){
     str_type = (char *) malloc(sizeof(char) * 5);
     strcpy(str_type, "Bulb");
   }
-  else if(node->nome == WINDOW){
+  else if(node->type == WINDOW){
     str_type = (char *) malloc(sizeof(char) * 7);
     strcpy(str_type, "Window");
   }
-  else if(node->nome == FRIDGE){
+  else if(node->type == FRIDGE){
     str_type = (char *) malloc(sizeof(char) * 7);
     strcpy(str_type, "Fridge");
   }
@@ -574,7 +580,7 @@ void info(char ** cmd, int n, int_list * figli_controller, int my_queue){
   }
 }
 
-void recupero_in_cascata(int myqueue, int gateway){
+void recupero_in_cascata(int myqueue){
   char ** msg;
   if((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 10, 0)) == -1) {
      printf("errore lettura ripristino\n");
@@ -586,13 +592,13 @@ void recupero_in_cascata(int myqueue, int gateway){
     msgsnd(queue, &messaggio ,sizeof(messaggio.msg_text), 0);
     if(type == HUB){
       if(fork() == 0){
-        hub(myid, TRUE, "", gateway);
+        hub(myid, TRUE, "");
         exit(0);
       }
     }
     else if(type == TIMER){
       if(fork() == 0){
-        timer(myid, TRUE, "", gateway);
+        timer(myid, TRUE, "");
         exit(0);
       }
     }
@@ -697,7 +703,7 @@ int override(int_list * queues, int type, int myid, int myqueue, msgbuf * msg_ex
   return rt;
 }
 
-void hub(int id, int recupero, char * nome, int gateway){
+void hub(int id, int recupero, char * nome){
   int_list * figli = create_int_list();
 
   int queue;
@@ -744,6 +750,7 @@ void hub(int id, int recupero, char * nome, int gateway){
       crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_RISP_HUB);
       concat_string(&risposta, msg[MSG_ID_MITTENTE]);  //si suppone che solo il padre possa fare una richiesta di questo tipo
       concat_string(&risposta, nome);
+      concat_int(&risposta, type_child);
       concat_int(&risposta, figli->n);
 
       //controllo override
@@ -863,27 +870,42 @@ void hub(int id, int recupero, char * nome, int gateway){
         }
       }
     }
-    if((codice_messaggio(msg) == MSG_SALVA_SPEGNI && (id_dest == DEFAULT || id_dest == id)) || flag_rimuovi){
-      msgbuf msg_salva;
+    else if((codice_messaggio(msg) == MSG_AGGIUNGI && (id_dest == DEFAULT || id_dest == id))){
+      int q_nf;
+      create_queue(atoi(msg[MSG_AGGIUNGI_IDF]), &q_nf);
 
-      //creo il messaggio di ripristino
-      msg_salva.msg_type = 10;
-      crea_messaggio_base(msg_salva, HUB, HUB, id, id, MSG_RECUPERO_HUB);
-      concat_string(msg_salva, nome);
-      int i, next;
-      for(i = 0; i < figli->n && get_int(i, &next, figli); i++){
-        concat_int(msg_salva, next);
+      msgbuf richiesta_figli, risposta_figli;
+      char ** msg_risp_f;
+
+      crea_messaggio_base(&richiesta_figlio, DEFAULT, HUB, DEFAULT, id, MSG_GET_TERMINAL_TYPE);
+      richiesta_figlio.msg_type = NUOVA_OPERAZIONE;
+      msgsnd(q_nf, &richiesta_figlio, sizeof(richiesta_figlio.msg_text), 0);
+      int flag = TRUE;
+      int type_new_c = -1;
+      while(flag){
+        if(leggi(myqueue, &risposta_figli, 2, 2)){
+          protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
+          if(codice_messaggio(msg_risp_f) == MSG_MYTYPE){
+            type_new_c = atoi(msg[MSG_MYTYPE_TYPE]);
+            flag = FALSE;
+          }
+        }
+        else{
+          flag = FALSE;
+        }
       }
-      msgsnd(queue, &msg_salva, sizeof(msg_salva.msg_text), 0);
+      if(type_new_c > 0 && (type_new_c == type_child || type_child <= 0)){
+        type_child = type_new_c;
+        insert_int(q_nf, 0, figli);
 
-      //invio il messaggio di chiusura ai figli
-      msgbuf richiesta_figli;
-      crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_SALVA_SPEGNI);
-      richiesta_figli.msg_type = NUOVA_OPERAZIONE;
-      invia_broadcast(&richiesta_figli, figli);
-      exit(0);
+        crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_SALVA_SPEGNI);
+        richiesta_figlio.msg_type = NUOVA_OPERAZIONE;
+        msgsnd(q_nf, &richiesta_figlio, sizeof(richiesta_figlio.msg_text), 0);
+
+        recupero_in_cascata(q_nf);
+      }
     }
-    else if((codice_messaggio(msg) == MSG_AGGIUNGI && (id_dest == DEFAULT || id_dest == id)) || flag_rimuovi){
+    if((codice_messaggio(msg) == MSG_SALVA_SPEGNI && (id_dest == DEFAULT || id_dest == id)) || flag_rimuovi){
       msgbuf msg_salva;
 
       //creo il messaggio di ripristino
