@@ -32,7 +32,6 @@ int main(){
     if((n_arg == 2) && (strcmp(cmd[1], "info") == 0)){
       printf("info\n");
       sprintf(fifo_r, "/tmp/D_%s_W", cmd[0]);
-      sleep(3);
       fd = open(fifo_r, O_RDONLY);
       printf("lettura info\n");
       read(fd, buf_r, BUF_SIZE);
