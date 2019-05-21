@@ -49,22 +49,26 @@ int main(){
   printf("FIFO LETTURA\n");
   int id = 0;
   char *fifo_w = (char *) malloc(sizeof(char)*20);
-  char *fifo_r = (char *) malloc(sizeof(char)*20); //manca nome
+  char *fifo_r = (char *) malloc(sizeof(char)*20);
   sprintf(fifo_w, "/tmp/D_%d_W", id);
   sprintf(fifo_r, "/tmp/D_%d_R", id);
   char buf_r[BUF_SIZE], buf_w[BUF_SIZE];
   int fd1, fd2, n_arg, flag = TRUE;
   char **cmd, *str;
 
-  if((mkfifo(fifo_w, 0666) == -1) && (errno != EEXIST)){ //se fallisce perché esiste già il file
+  //errno = EEXIST quando il path esiste già, in tale caso trascuro l'errore e procedo normalmente
+  if((mkfifo(fifo_w, 0666) == -1) && (errno != EEXIST)){
     perror("Errore mkfifo");
     exit(1);
   }
-  if((mkfifo(fifo_r, 0666) == -1) && (errno != EEXIST)){ //se fallisce perché esiste già il file
+
+  if((mkfifo(fifo_r, 0666) == -1) && (errno != EEXIST)){
     perror("Errore mkfifo");
     exit(1);
   }
-  printf("%s\n", fifo_r);
+
+  //printf("%s\n", fifo_r);
+
   while(flag){
     fd1 = open(fifo_r, O_RDONLY);
 
@@ -86,7 +90,11 @@ int main(){
       printf("Chiusura fifo\n");
       flag = FALSE;
     }
-    memset(buf_r, 0, sizeof(buf_r));
+    else{
+      printf("Comando non valido!\n");
+    }
+
+    memset(buf_r, 0, sizeof(buf_r)); //pulisco buf_r
     read(fd1, buf_r, BUF_SIZE);
     printf("%s\n", buf_r);
     close(fd1);
