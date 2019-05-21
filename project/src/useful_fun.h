@@ -53,6 +53,8 @@ int str_split(char * str, char *** rt);
 int protocoll_parser(char * str, char *** rt);
 int itoa(int n, char **str);
 int codice_messaggio(char ** msg);
-void crea_messaggio_base(char ** msg, int type_dest, int type_mit, int id_dest, int id_mit, int codice_op);
+void concat_int(msgbuf * messaggio, int n);
+void concat_string(msgbuf * messaggio, char * str);
+void crea_messaggio_base(msgbuf * messaggio, int type_dest, int type_mit, int id_dest, int id_mit, int codice_op);
 
 #endif

@@ -265,28 +265,23 @@ int codice_messaggio(char ** msg){
   return rt;
 }
 
-void crea_messaggio_base(char ** msg, int type_dest, int type_mit, int id_dest, int id_mit, int codice_op){
-  char * td;
-  itoa(type_dest, &td);
-  char * tm;
-  itoa(type_mit, &tm);
-  char * id_d;
-  itoa(id_dest, &id_d);
-  char * id_m;
-  itoa(id_mit, &id_m);
-  codice_op = codice_op % 100000; // rimuovo il valore "tipo dispositivo" nel caso presente NB: il tipo mittente è passato come parametro separato
-  char * cod_op;
-  itoa(codice_op, &cod_op);
-  (*msg) = (char *) malloc(sizeof(char) * (strlen(td) + 1 + strlen(tm) + 1 + strlen(id_d) + 1 + strlen(id_m) + 1 + strlen(cod_op) + 2));
-  (*msg)[0] = '\0';
-  strcat((*msg), td);
-  strcat((*msg), "\n");
-  strcat((*msg), tm);
-  strcat((*msg), "\n");
-  strcat((*msg), id_d);
-  strcat((*msg), "\n");
-  strcat((*msg), id_m);
-  strcat((*msg), "\n");
-  strcat((*msg), cod_op);
-  strcat((*msg), "\n");
+void concat_int(msgbuf * messaggio, int n){
+  char * str;
+  itoa(n, &str);
+  strcat(messaggio->msg_text, str);
+  strcat(messaggio->msg_text, "\n");
+}
+
+void concat_string(msgbuf * messaggio, char * str){
+  strcat(messaggio->msg_text, str);
+  strcat(messaggio->msg_text, "\n");
+}
+
+void crea_messaggio_base(msgbuf * messaggio, int type_dest, int type_mit, int id_dest, int id_mit, int codice_op){
+  strcpy(messaggio->msg_text, "\0");
+  concat_int(messaggio, type_dest);
+  concat_int(messaggio, type_mit);
+  concat_int(messaggio, id_dest);
+  concat_int(messaggio, id_mit);
+  concat_int(messaggio, codice_op % 100000); // rimuovo il valore "tipo dispositivo" nel caso presente NB: il tipo mittente è passato come parametro separato
 }
