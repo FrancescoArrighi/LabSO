@@ -16,6 +16,10 @@
 #define BULB_DEL 410005
 #define BULB_KILL 410006
 
+#define BULB_INF_STATO 5
+#define BULB_INF_INTERRUTTORE 6
+#define BULB_INF_TIME 7
+
 void bulb(int id, int recupero);
 
 #endif
