@@ -93,10 +93,6 @@ int main(){
     else{
       printf("Comando non valido!\n");
     }
-
-    memset(buf_r, 0, sizeof(buf_r)); //pulisco buf_r
-    read(fd1, buf_r, BUF_SIZE);
-    printf("%s\n", buf_r);
     close(fd1);
     close(fd2);
   }
