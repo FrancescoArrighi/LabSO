@@ -20,6 +20,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#define BUF_SIZE 150
+
 //valori di verità
 #define TRUE 1
 #define FALSE 0
