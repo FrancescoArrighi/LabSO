@@ -194,30 +194,30 @@ void window(int id, int recupero){
       apri_window(&status, &t_start);
       crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
       if(atoi(msg[MSG_ID_MITTENTE]) == id){
-        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), NUOVA_OPERAZIONE);
+        send_message(q_ris, &risposta, risposta.msg_text, NUOVA_OPERAZIONE);
       }
       else{
-        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 2);
+        send_message(q_ris, &risposta, risposta.msg_text, 2);
       }
     }
     else if(atoi(msg[MSG_OP]) == MSG_WINDOW_CLOSE && controllo_window(msg, id)){
       chiudi_window(&status);
       crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
       if(atoi(msg[MSG_ID_MITTENTE]) == id){
-        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), NUOVA_OPERAZIONE);
+        send_message(q_ris, &risposta, risposta.msg_text, NUOVA_OPERAZIONE);
       }
       else{
-        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 2);
+        send_message(q_ris, &risposta, risposta.msg_text, 2);
       }
     }
     else if(atoi(msg[MSG_OP]) == MSG_WINDOW_GETTIME && controllo_window(msg, id)){
       crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
       concat_int(&risposta, tempo_window_on(status, t_start));
       if(atoi(msg[MSG_ID_MITTENTE]) == id){
-        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), NUOVA_OPERAZIONE);
+        send_message(q_ris, &risposta, risposta.msg_text, NUOVA_OPERAZIONE);
       }
       else{
-        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 2);
+        send_message(q_ris, &risposta, risposta.msg_text, 2);
       }
     }
     else if(atoi(msg[MSG_OP]) == MSG_AGGIUNGI && controllo_window(msg, id)){
