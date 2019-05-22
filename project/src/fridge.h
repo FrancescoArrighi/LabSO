@@ -6,31 +6,46 @@
 #ifndef FRIDGE_H
 #define FRIDGE_H
 
-//msg info/recupero
-#define MSG_FRIDGE_STATO 5
-#define MSG_FRIDGE_INTERRUTTORE 6
-#define MSG_FRIDGE_TERM 7
-#define MSG_FRIDGE_TIME 8
-#define MSG_FRIDGE_DELAY 9
-#define MSG_FRIDGE_PERC 10
-#define MSG_FRIDGE_NOME 11
+//
+#define FRIDGE_VALORE 5
+
+//msg info
+#define FRIDGE_INF_STATO 6
+#define FRIDGE_INF_INTERRUTTORE 7
+#define FRIDGE_INF_TERM 8
+#define FRIDGE_INF_TIME 9
+#define FRIDGE_INF_DELAY 10
+#define FRIDGE_INF_PERC 11
+#define FRIDGE_INF_NOME 12
 
 //msg recupero
-#define MSG_FRIDGE_TSTART 12
-#define MSG_FRIDGE_ID 13
+#define FRIDGE_REC_STATO 5
+#define FRIDGE_REC_INTERRUTTORE 6
+#define FRIDGE_REC_TERM 7
+#define FRIDGE_REC_TIME 8
+#define FRIDGE_REC_DELAY 9
+#define FRIDGE_REC_PERC 10
+#define FRIDGE_REC_NOME 11
+#define FRIDGE_REC_TSTART 12
+#define FRIDGE_REC_ID 13
 
 //msg cod op
 #define FRIDGE_INFO 1
 #define FRIDGE_KILL 2
-#define FRIDGE_SET_STATO 610001
-#define FRIDGE_SET_INTERRUTTORE 610002
-#define FRIDGE_SET_TERMOSTATO 610003
-#define FRIDGE_SET_DELAY 610004
-#define FRIDGE_SET_PERC 610005
-#define FRIDGE_RECUPERO 610006
+#define FRIDGE_SET_STATO 710001
+#define FRIDGE_SET_INTERRUTTORE 710002
+#define FRIDGE_SET_TERMOSTATO 710003
+#define FRIDGE_SET_DELAY 710004
+#define FRIDGE_SET_PERC 710005
+#define FRIDGE_RECUPERO 710006
+
+#define FRIDGE_GET_STATO 51
+#define FRIDGE_GET_TIME 52
+#define FRIDGE_GET_TERMOSTATO 53
+#define FRIDGE_GET_DELAY 54
+#define FRIDGE_GET_PERC 55
 
 
-#define FIFO "/tmp/myfifo"
 
 typedef struct _frigo{
   int id; // id dispositivo
@@ -44,9 +59,8 @@ typedef struct _frigo{
 } t_frigo;
 
 void fridge(int id, int recupero, char *nome);
-void concat_dati(char* prl, t_frigo *frigo); //funzione che concatena i dati del frigo (quelli di info)
+void concat_dati(msgbuf *messaggio, t_frigo *frigo); //funzione che concatena i dati del frigo (quelli di info)
 int controlla_fridge(char ** str, int id);
-char * plus_only_n (char * a);
 void apri_frigo(t_frigo *frigo, time_t *t_start, int *allarme, int delay_recupero); // delay_recupero: indica il delay rimenente del frigo recuperato
 void chiudi_frigo(t_frigo *frigo, time_t *t_start, int *allarme);
 void set_stato(int valore, t_frigo *frigo, time_t *t_start, int *allarme); // setta stato del frigo al valore <valore> e inizializza un timer
