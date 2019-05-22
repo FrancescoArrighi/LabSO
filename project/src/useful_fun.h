@@ -56,5 +56,6 @@ int codice_messaggio(char ** msg);
 void concat_int(msgbuf * messaggio, int n);
 void concat_string(msgbuf * messaggio, char * str);
 void crea_messaggio_base(msgbuf * messaggio, int type_dest, int type_mit, int id_dest, int id_mit, int codice_op);
+char * percorso_file(int id, int tipo);
 
 #endif
