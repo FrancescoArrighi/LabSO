@@ -1,17 +1,6 @@
 //Header
 #include "bulb.h"
 
-/*Operazioni di una BULB
-BULB_SWITCH_S  = 410001
-BULB_SWITCH_I  = 410002
-BULB_GETTIME   = 410003
-BULB_GETINFO   = 410004
-BULB_PRINTTIME = 411003
-BULB_PRINTINFO = 411004
-BULB_DEL       = 410005
-BULB_KILL      = 410006
-*/
-
 // Funzione che genera una stringa con tutti i dati della bulb da stampare
 char * print_bulb_info(int id, int s, int i, time_t t){
     char * tmp1 = "\nBulb - id: ";
@@ -53,84 +42,6 @@ char * print_bulb_info(int id, int s, int i, time_t t){
     strcat(res, tmpt);
 
     return res;
-}
-
-// Funzione che prende i dati di una bulb e li concatena al messaggio salvato
-// nel buffer
-void concat_dati_bulb(msgbuf * m, int s, int i, time_t t){
-  char * st;
-  itoa(s, &st);
-  char * it;
-  itoa(i, &it);
-  char * tt;
-  itoa(t, &tt);
-  char * r = (char *) malloc(sizeof(char) * strlen(m->msg_text) + strlen(st) + 1 + strlen(it) + 1 + strlen(tt) + 2);
-  strcpy(r,m->msg_text);
-  strcat(r,st);
-  strcat(r,"\n");
-  strcat(r,it);
-  strcat(r,"\n");
-  strcat(r,tt);
-  strcat(r,"\n");
-  strcpy(m->msg_text, r);
-
-  free(r);
-}
-
-// Funziona che controlla che la stringa protocollo sia destinanata ad una BULB
-// con il nostro id o alternativamente abbia i valori di default
-// restituisce un booleano
-int controllo_bulb(char ** str, int id){
-  int rt = FALSE;
-  if(atoi(str[MSG_ID_DESTINATARIO]) == id || atoi(str[MSG_ID_DESTINATARIO]) == DEFAULT){
-    rt = TRUE;
-  }
-  return rt;
-}
-
-// Funzione che riceve i registri stato, interruttore e t_start per riferimento
-// Inverte l'interruttore e conseguentemente anche lo stato -> Manuale
-void inverti_interruttore(int * s, int * i, time_t *t) {
-  if ((*i) == FALSE) {
-    (*i) = TRUE;
-    if(!(*s)){
-      (*s) = TRUE;
-      (*t) = time(NULL);
-    }
-    printf("Interruttore su ON\n");
-  }
-  else {
-    (*i) = FALSE;
-    if(*s){
-      (*s) = FALSE;
-    }
-    printf("Interruttore su OFF\n");
-  }
-}
-
-// Funzione che riceve i registri stato, interruttore e t_start per riferimento
-// Inverte l'interruttore e conseguentemente anche lo stato -> Centralina
-void inverti_stato(int * s, int * i, time_t *t) {
-  if ((*s) == FALSE) {
-    (*s) = TRUE;
-    (*t) = time(NULL);
-    printf("La vostra lampadina è stata accesa\n");
-  }
-  else {
-    (*s) = FALSE;
-    printf("La vostra lampadina è stata spenta\n");
-  }
-}
-
-// Funzione che restituisce il tempo di accensione della Lampadina
-// Se la lampadina è spenta restituisce 0
-int tempo_on(int s, time_t t) {
-  int res = 0;
-  if(s == TRUE){
-    res = (int) difftime(time(NULL),t);
-  }
-
-  return res;
 }
 
 /* Funzione Bulb */
@@ -203,7 +114,7 @@ void bulb(int id, int recupero){ //recupero booleano
           richiesta = MSG_INF;
         }
         //printf("%s\n", str );
-        send_message(queue, &messaggio, str, 1); // Invio il messaggio con il codice giusto
+        send_message(queue, &m_temp, m_temp.msg_text, NUOVA_OPERAZIONE); // Invio il messaggio con il codice giusto
       }
       else {
         flag = FALSE;
@@ -236,7 +147,7 @@ void bulb(int id, int recupero){ //recupero booleano
             //printf("%s\n", buf_w);
           }
           else if (richiesta == MSG_BULB_GETTIME) {
-            sprintf(str_temp, "time: %s\n", info_response[BULB_INF_TIME]);
+            sprintf(str_temp, "time: %s\n", info_response[BULB_TIME]);
             strcat(buf_w, str_temp);
             write(fd_write, buf_w, strlen(buf_w)+1);
             //printf("%s\n", buf_w);
@@ -321,4 +232,82 @@ void bulb(int id, int recupero){ //recupero booleano
     }
   }
   printf("Errore lettura queue BULB\n");
+}
+
+// Funzione che prende i dati di una bulb e li concatena al messaggio salvato
+// nel buffer
+void concat_dati_bulb(msgbuf * m, int s, int i, time_t t){
+  char * st;
+  itoa(s, &st);
+  char * it;
+  itoa(i, &it);
+  char * tt;
+  itoa(t, &tt);
+  char * r = (char *) malloc(sizeof(char) * strlen(m->msg_text) + strlen(st) + 1 + strlen(it) + 1 + strlen(tt) + 2);
+  strcpy(r,m->msg_text);
+  strcat(r,st);
+  strcat(r,"\n");
+  strcat(r,it);
+  strcat(r,"\n");
+  strcat(r,tt);
+  strcat(r,"\n");
+  strcpy(m->msg_text, r);
+
+  free(r);
+}
+
+// Funziona che controlla che la stringa protocollo sia destinanata ad una BULB
+// con il nostro id o alternativamente abbia i valori di default
+// restituisce un booleano
+int controllo_bulb(char ** str, int id){
+  int rt = FALSE;
+  if(atoi(str[MSG_ID_DESTINATARIO]) == id || atoi(str[MSG_ID_DESTINATARIO]) == DEFAULT){
+    rt = TRUE;
+  }
+  return rt;
+}
+
+// Funzione che riceve i registri stato, interruttore e t_start per riferimento
+// Inverte l'interruttore e conseguentemente anche lo stato -> Manuale
+void inverti_interruttore(int * s, int * i, time_t *t) {
+  if ((*i) == FALSE) {
+    (*i) = TRUE;
+    if(!(*s)){
+      (*s) = TRUE;
+      (*t) = time(NULL);
+    }
+    printf("Interruttore su ON\n");
+  }
+  else {
+    (*i) = FALSE;
+    if(*s){
+      (*s) = FALSE;
+    }
+    printf("Interruttore su OFF\n");
+  }
+}
+
+// Funzione che riceve i registri stato, interruttore e t_start per riferimento
+// Inverte l'interruttore e conseguentemente anche lo stato -> Centralina
+void inverti_stato(int * s, int * i, time_t *t) {
+  if ((*s) == FALSE) {
+    (*s) = TRUE;
+    (*t) = time(NULL);
+    printf("La vostra lampadina è stata accesa\n");
+  }
+  else {
+    (*s) = FALSE;
+    printf("La vostra lampadina è stata spenta\n");
+  }
+}
+
+// Funzione che restituisce il tempo di accensione della Lampadina
+// Se la lampadina è spenta restituisce 0
+int tempo_on(int s, time_t t) {
+  int res = 0;
+  if(s == TRUE){
+    res = (int) difftime(time(NULL),t);
+  }
+
+  return res;
 }
