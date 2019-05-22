@@ -7,18 +7,19 @@
 #define BULB_H
 
 //Operazioni di una BULB
-#define BULB_SWITCH_S 410001
-#define BULB_SWITCH_I 410002
-#define BULB_GETTIME 410003
-#define BULB_GETINFO 410004
-#define BULB_PRINTTIME 411003
-#define BULB_PRINTINFO 411004
-#define BULB_DEL 410005
-#define BULB_KILL 410006
+#define MSG_BULB_SWITCH_S 410001
+#define MSG_BULB_SWITCH_I 410002
+#define MSG_BULB_GETTIME 410003
+#define MSG_BULB_GETINFO 410004
+#define MSG_BULB_PRINTTIME 411003
+#define MSG_BULB_PRINTINFO 411004
+#define MSG_BULB_DEL 410005
+#define MSG_BULB_KILL 410006
 
-#define BULB_INF_STATO 5
+// Campi per ripristino
+#define BULB_INF_TIME 5
 #define BULB_INF_INTERRUTTORE 6
-#define BULB_INF_TIME 7
+#define BULB_INF_STATO 7
 
 void bulb(int id, int recupero);
 

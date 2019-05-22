@@ -12,26 +12,6 @@ BULB_DEL       = 410005
 BULB_KILL      = 410006
 */
 
-// Funzione che crea una stringa "/tmp/D_id_" con l'id passato aggiungendo
-//una W o R a seconda che il file sia Writer o Reader
-char * percorso_file(int id, int tipo){
-  char * tmp1 = "/tmp/D_";
-  char * tmp2;
-  itoa(id,&tmp2);
-  char * r = (char *) malloc(sizeof(char) * (strlen(tmp1) + strlen(tmp2) + 3));
-  strcpy(r, tmp1);
-  strcat(r, tmp2);
-
-  if (tipo == READ) {
-    strcat(r, "_R");
-  }
-  else {
-    strcat(r, "_W");
-  }
-
-  return r;
-}
-
 // Funzione che genera una stringa con tutti i dati della bulb da stampare
 char * print_bulb_info(int id, int s, int i, time_t t){
     char * tmp1 = "\nBulb - id: ";
@@ -102,10 +82,8 @@ void concat_dati_bulb(msgbuf * m, int s, int i, time_t t){
 // restituisce un booleano
 int controllo_bulb(char ** str, int id){
   int rt = FALSE;
-  if(atoi(str[MSG_TYPE_DESTINATARIO]) == BULB || atoi(str[MSG_TYPE_DESTINATARIO]) == 0){
-    if(atoi(str[MSG_ID_DESTINATARIO]) == id || atoi(str[MSG_ID_DESTINATARIO]) == 0){
-      rt = TRUE;
-    }
+  if(atoi(str[MSG_ID_DESTINATARIO]) == id || atoi(str[MSG_ID_DESTINATARIO]) == DEFAULT){
+    rt = TRUE;
   }
   return rt;
 }
@@ -146,50 +124,13 @@ void inverti_stato(int * s, int * i, time_t *t) {
 
 // Funzione che restituisce il tempo di accensione della Lampadina
 // Se la lampadina è spenta restituisce 0
-float tempo_ON(int s, time_t t) {
-  float res = 0;
+int tempo_on(int s, time_t t) {
+  int res = 0;
   if(s == TRUE){
-    res = difftime(time(NULL),t);
+    res = (int) difftime(time(NULL),t);
   }
 
   return res;
-}
-
-char * crea_msg_fifow(char * m, int id) {
-  char * tmp;
-  char ** md;
-  protocoll_parser(m, &md);
-  printf("Codice: %d\n", codice_messaggio(md));
-  switch (codice_messaggio(md)) {
-    case BULB_SWITCH_I:
-      strcpy(tmp, "Interruttore invertito\n");
-      break;
-    case BULB_PRINTTIME:
-      itoa(tempo_ON(atoi(md[MSG_OP + 1]), atoi(md[MSG_OP + 3])), &tmp);
-      break;
-    case BULB_PRINTINFO:
-      strcpy(tmp, print_bulb_info(id, atoi(md[MSG_OP + 1]), atoi(md[MSG_OP + 2]), atoi(md[MSG_OP + 3])));
-      break;
-    default: printf("Errore nello switch della Write\n" ); //Gestisci errore
-      break;
-  }
-  char * res = (char *) malloc (sizeof(char) * strlen(tmp) + 1);
-  strcpy(res, tmp);
-  printf("Ho creato il msg e non mi sono bloccato\n");
-  return res;
-}
-
-void manda_msg_fifow(int f, char * p, char * testo) {
-  char buf[100];
-  strcpy(buf, testo);
-  int flag = TRUE;
-
-  printf("Sto quasi per scrivere\n");
-  f = open(p, O_WRONLY);
-  printf("Sto per scrivere\n");
-  write(f, buf, strlen(buf)+1);
-  printf("Ho inviato il msg e non mi sono bloccato: %s\n", buf);
-  close(f);
 }
 
 /* Funzione Bulb */
@@ -207,7 +148,6 @@ void bulb(int id, int recupero){ //recupero booleano
 
   int flag = FALSE;
   char **cmd;
-  char *str;
 
   char ** msg;
 
@@ -217,9 +157,9 @@ void bulb(int id, int recupero){ //recupero booleano
     }
     else{
       protocoll_parser(messaggio.msg_text, &msg);
-      status = atoi(msg[MSG_OP + 1]);
-      interruttore = atoi(msg[MSG_OP + 2]);
-      t_start = atoi(msg[MSG_OP + 3]);
+      status = atoi(msg[BULB_INF_STATO]);
+      interruttore = atoi(msg[BULB_INF_INTERRUTTORE]);
+      t_start = atoi(msg[BULB_INF_TIME]);
     }
   }
 
@@ -229,6 +169,8 @@ void bulb(int id, int recupero){ //recupero booleano
     int richiesta = 0;
     char buf_r[80];
     char buf_w[80];
+    msgbuf m_temp;
+    char * str;
     char * rfifo = percorso_file(id,READ);
     char * wfifo = percorso_file(id,WRITE);
     mkfifo(rfifo, 0666); // percorso e permessi
@@ -250,15 +192,15 @@ void bulb(int id, int recupero){ //recupero booleano
       }
       else if((strcmp(cmd[0], nome) == 0) && (n_arg >= 2)){ //Accetto comandi del tipo "BULB qualcosa"
         if(strcmp(cmd[1], "interruttore") == 0){
-          crea_messaggio_base(&str, BULB, BULB, id, id, BULB_SWITCH_I);
+          crea_messaggio_base(&m_temp, BULB, BULB, id, id, MSG_BULB_SWITCH_I);
         }
         else if(strcmp(cmd[1], "time") == 0){
-          crea_messaggio_base(&str, BULB, BULB, id, id, BULB_PRINTTIME);
-          richiesta = BULB_PRINTTIME;
+          crea_messaggio_base(&m_temp, BULB, BULB, id, id, MSG_BULB_GETTIME);
+          richiesta = MSG_BULB_GETTIME;
         }
         else if(strcmp(cmd[1], "info") == 0){
-          crea_messaggio_base(&str, BULB, BULB, id, id, BULB_PRINTINFO);
-          richiesta = BULB_PRINTINFO;
+          crea_messaggio_base(&m_temp, BULB, BULB, id, id, MSG_INF);
+          richiesta = MSG_INF;
         }
         //printf("%s\n", str );
         send_message(queue, &messaggio, str, 1); // Invio il messaggio con il codice giusto
@@ -271,7 +213,7 @@ void bulb(int id, int recupero){ //recupero booleano
       if (richiesta > 0) {
         fd_write = open(wfifo, O_WRONLY);
 
-        if((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 3, 0)) != -1){ //quando ricevo la risposta
+        if((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), NUOVA_OPERAZIONE, 0)) != -1){ //quando ricevo la risposta
           //printf("Ricevuta risposta info\n");
           //printf("\n\n%s\n", messaggio.msg_text);
           char **info_response;
@@ -279,7 +221,7 @@ void bulb(int id, int recupero){ //recupero booleano
           protocoll_parser(messaggio.msg_text, &info_response);
           memset(buf_w, 0, sizeof(buf_w)); //pulisco buf_w
           //concateno i dati ricevuti
-          if (richiesta == BULB_PRINTINFO) {
+          if (richiesta == MSG_INF) {
             strcat(buf_w, "nome: Bulb%s\n");
             itoa(id, &str_temp);
             strcat(buf_w, str_temp);
@@ -293,7 +235,7 @@ void bulb(int id, int recupero){ //recupero booleano
             write(fd_write, buf_w, strlen(buf_w)+1); //srivo su fifo buf_w
             //printf("%s\n", buf_w);
           }
-          else if (richiesta == BULB_PRINTTIME) {
+          else if (richiesta == MSG_BULB_GETTIME) {
             sprintf(str_temp, "time: %s\n", info_response[BULB_INF_TIME]);
             strcat(buf_w, str_temp);
             write(fd_write, buf_w, strlen(buf_w)+1);
@@ -311,65 +253,70 @@ void bulb(int id, int recupero){ //recupero booleano
     unlink(wfifo);
     //free(rfifo); // Libero la memoria allocata
   }
-  //sleep(5);
 
-  /*char * wfifo = percorso_file(id,WRITE);
-  char buf[100];
-  fd = open(wfifo, O_WRONLY);
-  strcpy(buf, "Ciao");
-  write(fd, buf, strlen(buf)+1);
-  close(fd);
-  printf("Ho inviato il msg e non mi sono bloccato: %s\n", buf);*/
+  msgbuf risposta;
+  int q_ris;
 
-  //inizio loop
-  while ((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 1, 0)) != -1) {
+  //Inizio Loop
+
+  while ((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), NUOVA_OPERAZIONE, 0)) != -1) {
     protocoll_parser(messaggio.msg_text, &msg);
+    create_queue(atoi(msg[MSG_ID_MITTENTE]), & q_ris);
     //Manca la richiesta di tempo di utilizzo che arriva dal controller
-    if(atoi(msg[MSG_OP]) == MSG_INF && controllo_bulb(msg,id) && (atoi(msg[MSG_ID_MITTENTE]) != id)) { //richiesta info su me stesso
-      strcat(messaggio.msg_text, msg[MSG_INF_ID_PADRE]);
-      strcat(messaggio.msg_text, "\n\0");
-      concat_dati_bulb(&messaggio, status, interruttore, t_start);
-      send_message(queue, &messaggio, messaggio.msg_text, 2); // Che priorita
-    }
-    else if (atoi(msg[MSG_OP]) >= 11000 && controllo_bulb(msg,id) && (atoi(msg[MSG_ID_MITTENTE]) == id)) { //Richiesta che attende una risposta
-      switch (codice_messaggio(msg)) {
-        case BULB_PRINTTIME:
-          concat_dati_bulb(&messaggio, status, interruttore, t_start);
-          send_message(queue, &messaggio, messaggio.msg_text, 3);
-          break;
-        case BULB_PRINTINFO:
-          concat_dati_bulb(&messaggio, status, interruttore, t_start);
-          send_message(queue, &messaggio, messaggio.msg_text, 3);
-          break;
-        default: printf("Richiesta specifica con risposta non definita\n" ); //Gestisci errore
-          break;
+    if(atoi(msg[MSG_OP]) == MSG_INF && controllo_bulb(msg,id)) { //richiesta info su me stesso
+      crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_BULB);
+      concat_int(&risposta, status);
+      concat_int(&risposta, interruttore);
+      concat_int(&risposta, tempo_on(status, t_start));
+      if(atoi(msg[MSG_ID_MITTENTE]) == id){
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), NUOVA_OPERAZIONE); //mando un messaggio alla fifo
+      }
+      else{
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 2);
       }
     }
-    else if(atoi(msg[MSG_OP]) == BULB_KILL && controllo_bulb(msg, id)){
-      //kill(idf1, SIGTERM); - uccidere il sottoprocesso
-      exit(EXIT_SUCCESS);
+    else if(atoi(msg[MSG_OP]) == MSG_SALVA_SPEGNI && controllo_bulb(msg, id)){
+      concat_dati_bulb(&messaggio, status, interruttore, t_start);
+      send_message(queue, &messaggio, messaggio.msg_text, 10);
+      //printf("Lampadina pronta per essere eliminata\n");
     }
-    else if (atoi(msg[MSG_OP]) >= 10000 && controllo_bulb(msg,id)) { // Richieste specifiche
-      switch (codice_messaggio(msg)) {
-        case BULB_SWITCH_S: //Comando inverti stato
-          inverti_stato(&status, &interruttore, &t_start);
-          break;
-        case BULB_SWITCH_I: //Comando inverti interruttore
-          inverti_interruttore(&status, &interruttore, &t_start);
-          break;
-        case BULB_DEL: //Comando che prepara all'eliminazione e manda il messaggio di recupero
-          concat_dati_bulb(&messaggio, status, interruttore, t_start);
-          send_message(queue, &messaggio, messaggio.msg_text, 10);
-          printf("Lampadina pronta per essere eliminata\n");
-          //printf("%s\n", messaggio.msg_text);
-          break;
-        case BULB_KILL: // Faccio solo un exit?
-          //kill(idf1, SIGTERM);
-          //kill(idf2, SIGTERM);
-          exit(0);
-          break;
-        default: printf("Richiesta specifica senza risposta non definita\n" ); //Gestisci errore
-          break;
+    else if(atoi(msg[MSG_OP]) == MSG_SPEGNI && controllo_bulb(msg, id)){
+      //kill(idf1, SIGTERM); - uccidere il sottoprocesso
+      //exit(EXIT_SUCCESS);
+    }
+    else if(atoi(msg[MSG_OP]) == MSG_BULB_SWITCH_S && controllo_bulb(msg, id)){
+      inverti_stato(&status, &interruttore, &t_start);
+      crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+      msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 2);
+    }
+    else if(atoi(msg[MSG_OP]) == MSG_BULB_SWITCH_I && controllo_bulb(msg, id)){
+      inverti_interruttore(&status, &interruttore, &t_start);
+      crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+      if(atoi(msg[MSG_ID_MITTENTE]) == id){
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), NUOVA_OPERAZIONE);
+      }
+      else{
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 2);
+      }
+    }
+    else if(atoi(msg[MSG_OP]) == MSG_BULB_GETTIME && controllo_bulb(msg, id)){
+      crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+      concat_int(&risposta, tempo_on(status, t_start));
+      if(atoi(msg[MSG_ID_MITTENTE]) == id){
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), NUOVA_OPERAZIONE);
+      }
+      else{
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 2);
+      }
+    }
+
+    else{
+      crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+      if(atoi(msg[MSG_ID_MITTENTE]) == id){
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), NUOVA_OPERAZIONE);
+      }
+      else{
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 2);
       }
     }
   }
