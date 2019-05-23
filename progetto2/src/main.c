@@ -1,5 +1,4 @@
 #include "main.h"
-#include "useful_fun.h"
 
 
 int equal_bulb(msgbuf msg_example, msgbuf messaggio){ //da fare
@@ -214,8 +213,9 @@ void info(char ** cmd, int n, int queue, int deposito, int_list * figli){
   for(i = figli->n + 1; i > 0 && flag; i--){
     if(leggi(queue, &risposta_figli, 2, 2)){
       int dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
-      if(codice_messaggio(msg_risp_f) == MSG_INF_HUB || codice_messaggio(msg_risp_f) == MSG_INF_TIMER){
+      if(codice_messaggio(msg_risp_f) == MSG_INF_HUB || codice_messaggio(msg_risp_f) == MSG_INF_TIMER || codice_messaggio(msg_risp_f) == MSG_INF_DEPOSITO){
         i += atoi(msg_risp_f[MSG_INF_CONTROLDV_NFIGLI]);
+        printf("stampa : aggiunto %d\n", atoi(msg_risp_f[MSG_INF_CONTROLDV_NFIGLI]) );
       }
       printf("info:\n---------------------------------- \n%s\n---------------------------------- \n", risposta_figli.msg_text);
     }
@@ -231,18 +231,16 @@ void controller(int myid, int id_deposito){
     ssize_t dim_str = 110;
     char * str = (char *) malloc(sizeof(char) * dim_str);
     char ** cmd;
-    int_list * figli = create_int_list();
+    int_list * figli = (int_list *) create_int_list();
     int n;
     int next_id = 385;
     int my_queue, queue_deposito;
     crea_queue(myid, &my_queue);
     crea_queue(id_deposito, &queue_deposito);
-    create_int_list(figli);
 
     int flag = TRUE;
     printf("\n>");
     while (flag && getline(&str, &dim_str, stdin) >= 0) {
-        printf("controller\n  comando: |%s|\n", str);
         n = str_split(str, &cmd);
         if(n > 0){
           if(strcmp(cmd[0], "list") == 0){
@@ -270,9 +268,6 @@ void controller(int myid, int id_deposito){
           else{
               printf("comando non valido \n");
           }
-        }
-        else{
-          printf("comando da n: %d\n", n);
         }
         sleep(1);
         printf("\n>");

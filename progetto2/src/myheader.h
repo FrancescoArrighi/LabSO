@@ -104,6 +104,7 @@
 #define MSG_SALVA_SPEGNI 16
 #define MSG_SPEGNI 17
 
+//Struct
 typedef struct pair_int{
     int first;
     int second;

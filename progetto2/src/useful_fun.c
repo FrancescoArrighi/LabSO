@@ -275,6 +275,14 @@ void ricomponi_messaggio(char ** cmd, int n, msgbuf * messaggio){ // ricomponi_m
   }
 }
 
+void svuota_msg_queue(int queue, int p){
+  msgbuf messaggio;
+  errno = 0;
+  while (errno != ENOMSG){
+    msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), p, IPC_NOWAIT);
+  }
+}
+
 void invia_broadcast(msgbuf * messaggio, int_list * queue){
   int i, next;
   //printf("\n inizio broadcast n: %d\n", queue->n);
@@ -289,16 +297,22 @@ void invia_broadcast(msgbuf * messaggio, int_list * queue){
 void recupero_in_cascata(int queue){
   char ** msg;
   msgbuf messaggio;
+  //printf("tasso1\n");
   if((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 10, 0)) == -1) {
      printf("errore lettura ripristino\n");
   }
   else{
+    //printf("tasso2\n");
     protocoll_parser(messaggio.msg_text, &msg);
+    //printf("tasso3\n");
     int type = atoi(msg[MSG_RECUPERO_TYPE]);
     int myid = atoi(msg[MSG_RECUPERO_ID]);
+    //printf("tasso4\n");
     msgsnd(queue, &messaggio ,sizeof(messaggio.msg_text), 0);
+    //printf("tasso5\n");
     if(type == HUB){
       if(fork() == 0){
+        //printf("tasso6\n");
         hub(myid, TRUE, "");
         exit(0);
       }
@@ -327,6 +341,7 @@ void recupero_in_cascata(int queue){
         exit(0);
       }
     }
+    //printf("tasso7\n");
   }
 }
 

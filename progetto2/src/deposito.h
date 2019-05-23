@@ -1,4 +1,5 @@
 #include "myheader.h"
+#include "useful_fun.h"
 #ifndef DEPOSITO_H
 #define DEPOSITO_H
 

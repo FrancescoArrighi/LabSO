@@ -14,21 +14,21 @@ help :
 	@echo $(info)
 
 build : $(OBJECTS)
-	$(CC) $(CFLAGS) $(SRCDIR)/main.c
+	$(CC) $(CFLAGS) $(OBJECTS)
 
 useful_fun.o : useful_fun.h useful_fun.c
 	$(CC) $(CFLAGS) -c useful_fun.c
 
-controller.o : controller.h useful_fun.h controller.c
+controller.o : controller.h controller.c
 	$(CC) $(CFLAGS) -c controller.c
 
-main.o : main.h useful_fun.h main.c
+main.o : main.h main.c
 	$(CC) $(CFLAGS) -c main.c
 
-hub.o : hub.h useful_fun.h hub.c
+hub.o : hub.h hub.c
 	$(CC) $(CFLAGS) -c hub.c
 
-deposito.o : deposito.h useful_fun.h deposito.c
+deposito.o : deposito.h deposito.c
 	$(CC) $(CFLAGS) -c deposito.c
 
 clean :

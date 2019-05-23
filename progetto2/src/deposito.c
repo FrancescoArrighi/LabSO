@@ -1,8 +1,10 @@
 #include "deposito.h"
-#include "useful_fun.h"
+
+
 
 void deposito(int id, int id_controller){
-  int_list * figli = create_int_list();
+  int_list * figli;
+  figli = create_int_list();
   printf("deposito - %d - pid = %d\n", id,getpid());
   int queue;
   msgbuf messaggio;
@@ -16,19 +18,23 @@ void deposito(int id, int id_controller){
   int mesg_non_supp;
   while (TRUE) {
     msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), NUOVA_OPERAZIONE, 0);
+    printf("deposito - %d - pid = %d\n------------------\n%s\n------------------\n", id,getpid(), messaggio.msg_text);
     msg_type = messaggio.msg_type;
     protocoll_parser(messaggio.msg_text, &msg);
     id_dest = atoi(msg[MSG_ID_DESTINATARIO]);
     mesg_non_supp = FALSE;
     flag_rimuovi = FALSE;
-
+    printf("deposito - 3 \n");
     if(codice_messaggio(msg) == MSG_INF){ //richiesta info su tutti
       if(id_dest == DEFAULT || id_dest == id){
         printf("defosito - fail: \n");
         //creo la risposta
         msgbuf risposta;
         risposta.msg_type = 2;
-        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), DEPOSITO, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_HUB);
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), DEPOSITO, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_DEPOSITO);
+        concat_int(&risposta, DEFAULT);
+        concat_string(&risposta, "Deposito");
+        concat_int(&risposta, DEFAULT);
         concat_int(&risposta, figli->n);
 
         //invio la risposta
@@ -50,7 +56,9 @@ void deposito(int id, int id_controller){
         int i;
 
         for(i = figli->n; i > 0 && flag; i--){
+          printf("$\n");
           if(leggi(queue, &risposta_figli, 2, 2)){
+            printf("$\ndeposito messaggio:\n-----------\n%s\n-----------\n\n", risposta_figli.msg_text);
             dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
             if(codice_messaggio(msg_risp_f) == MSG_INF_HUB || codice_messaggio(msg_risp_f) == MSG_INF_TIMER){
               i += atoi(msg_risp_f[MSG_INF_CONTROLDV_NFIGLI]);
@@ -58,14 +66,20 @@ void deposito(int id, int id_controller){
             if(atoi(msg_risp_f[MSG_INF_IDPADRE]) == DEFAULT){
               itoa(id, &(msg_risp_f[MSG_INF_IDPADRE]));
             }
+            printf("deposito - infoc - 1\n" );
             strcpy(msg_risp_f[MSG_ID_DESTINATARIO], msg[MSG_ID_MITTENTE]);
+            printf("deposito - infoc - 2\n" );
             strcpy(msg_risp_f[MSG_TYPE_DESTINATARIO], msg[MSG_TYPE_MITTENTE]);
+            printf("deposito - infoc - 2\n" );
             ricomponi_messaggio(msg_risp_f, dim_msg, &risposta);
+            printf("deposito - infoc - 3\n" );
             msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
+            printf("deposito - infoc - 4\n" );
           }
           else{
             flag = FALSE;
           }
+          printf("deposito - infoc - FINE\n" );
         }
       }
       else{
@@ -275,8 +289,9 @@ void deposito(int id, int id_controller){
           exit(0);
         }
       }
+      printf("deposito - 4\n" );
       insert_int(q_nf, 0, figli);
-
+      printf("deposito - 5\n" );
     }
     else if(codice_messaggio(msg) == MSG_GET_TERMINAL_TYPE ){
         msgbuf richiesta_figli;
@@ -392,6 +407,6 @@ void deposito(int id, int id_controller){
         msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
       }
     }
-    //printf("deposito - fine\n" );
+    printf("deposito - fine\n" );
   }
 }

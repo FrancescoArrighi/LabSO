@@ -41,6 +41,8 @@ void invia_broadcast(msgbuf * messaggio, int_list * queue);
 
 void recupero_in_cascata(int queue);
 
+void svuota_msg_queue(int queue, int p);
+
 int leggi(int queue, msgbuf * messaggio, int p, float t);
 
 #endif
