@@ -22,15 +22,15 @@ Esempio operazioni (dove 71 è id di un frigo): \n \
 int check_cmd(char **cmd, int n_arg){ //controllo se il comando è tra quelli ammessibili
   int rt = FALSE;
   if((strcmp(cmd[1], "get") == 0) && (n_arg == 3)){
-    if((strcmp(cmd[2], "interruttore") == 0) && (strcmp(cmd[2], "percentuale") == 0)
-    && (strcmp(cmd[2], "termostato") == 0) && (strcmp(cmd[2], "delay") == 0)
-    && (strcmp(cmd[2], "stato") == 0) && (strcmp(cmd[2], "time") == 0) && (strcmp(cmd[2], "info") == 0)){
+    if((strcmp(cmd[2], "interruttore") == 0) || (strcmp(cmd[2], "percentuale") == 0)
+    || (strcmp(cmd[2], "termostato") == 0) || (strcmp(cmd[2], "delay") == 0)
+    || (strcmp(cmd[2], "stato") == 0) || (strcmp(cmd[2], "time") == 0) || (strcmp(cmd[2], "info") == 0)){
       rt = TRUE;
     }
   }
   else if(strcmp(cmd[1], "set") == 0  && (n_arg == 4)){
-    if((strcmp(cmd[2], "interruttore") == 0) && (strcmp(cmd[2], "percentuale") == 0)
-    && (strcmp(cmd[2], "termostato") == 0) && (strcmp(cmd[2], "delay") == 0)){
+    if((strcmp(cmd[2], "interruttore") == 0) || (strcmp(cmd[2], "percentuale") == 0)
+    || (strcmp(cmd[2], "termostato") == 0) || (strcmp(cmd[2], "delay") == 0)){
       rt = TRUE;
     }
   }
