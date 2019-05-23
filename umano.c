@@ -64,7 +64,7 @@ int main(){
       printf("Fine scrittura\n");
       flag = 0;
     }
-    else if(check_cmd(cmd, n_arg) || (strcmp(cmd[1], "close") == 0)){ //se il comando è corretto o è close
+    else if((n_arg > 1) && (check_cmd(cmd, n_arg) || (strcmp(cmd[1], "chiuditi") == 0))){ //se il comando è corretto o è chiuditi
       if((n_arg >= 2)){ //se abbiamo almeno 2 parametri apro fifo di scrittura e scrivo
         sprintf(fifo_w, "/tmp/D_%s_R", cmd[0]);
         printf("%s\n", fifo_w);
@@ -88,6 +88,13 @@ int main(){
     }
     else{
       printf("Comando non valido!\n");
+      printf("Desideri uscire? [s/n]\n");
+      fgets(buf_w, BUF_SIZE, stdin);
+      //printf("Risposta: %s\n",buf_w );
+      if (strcmp(buf_w, "s\n") == 0) {
+        printf("Scrittura finita\n");
+        flag = 0;
+      }
     }
   }
 
