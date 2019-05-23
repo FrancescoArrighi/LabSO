@@ -12,14 +12,19 @@
 #define MSG_WINDOW_GETTIME 510003
 #define MSG_WINDOW_GETINFO 510004
 
-//Campi per ripristino
-#define WINDOW_INF_STATO 5
-#define WINDOW_INF_TIME 6
-#define WINDOW_INF_TSTART 6
-//Campo Time
+//Campi per Info
+#define WINDOW_INF_NOME 6
+#define WINDOW_INF_STATO 7
+#define WINDOW_INF_TIME 8
+
+//Campo per Ripristino
+#define WINDOW_STATO 5
+#define WINDOW_TSTART 6
+
+//Campo GetTime
 #define WINDOW_TIME 5
 
-void window(int id, int recupero);
+void window(int id, int recupero, char * nome);
 int tempo_window_on(int s, time_t t);
 void concat_dati_window(msgbuf * m, int s, time_t t);
 int controllo_window(char ** str, int id);

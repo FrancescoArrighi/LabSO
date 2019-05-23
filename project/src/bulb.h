@@ -12,14 +12,21 @@
 #define MSG_BULB_GETTIME 410003
 #define MSG_BULB_GETINFO 410004
 
-//Campi per ripristino (5 id padre)
-#define BULB_INF_STATO 6
-#define BULB_INF_INTERRUTTORE 7
-#define BULB_INF_TIME 8
-//Campo Time
+//Campi per Info
+#define BULB_INF_NOME 6
+#define BULB_INF_STATO 7
+#define BULB_INF_INTERRUTTORE 8
+#define BULB_INF_TIME 9
+
+//Campo per Ripristino
+#define BULB_STATO 5
+#define BULB_INTERRUTTORE 6
+#define BULB_TSTART 7
+
+//Campo GetTime
 #define BULB_TIME 5
 
-void bulb(int id, int recupero);
+void bulb(int id, int recupero, char * nome);
 void concat_dati_bulb(msgbuf * m, int s, int i, time_t t);
 int controllo_bulb(char ** str, int id);
 void inverti_interruttore(int * s, int * i, time_t *t);

@@ -1,62 +1,19 @@
 //Header
 #include "bulb.h"
 
-/*Operazioni di una BULB
+/*Operazioni di una Bulb
 MSG_BULB_SWITCH_S = 410001
 MSG_BULB_SWITCH_I = 410002
 MSG_BULB_GETTIME  = 410003
 MSG_BULB_GETINFO  = 410004
 */
 
-// Funzione che genera una stringa con tutti i dati della bulb da stampare
-char * print_bulb_info(int id, int s, int i, time_t t){
-    char * tmp1 = "\nBulb - id: ";
-    char * tmp2 = "\nStato: ";
-    char * tmp3 = "\nInterruttore: ";
-    char * tmp4 = "\nTempo di utilizzo: ";
-    char * tmpid;
-    itoa(id,&tmpid);
-    char * tmpt;
-    float tt = difftime(time(NULL),t);
-    itoa(tt,&tmpt);
-    char tmps[4];
-    char tmpi[4];
-
-    if(s == TRUE){
-        strcpy(tmps, "ON");
-    }
-    else{
-      strcpy(tmps, "OFF");
-    }
-    if(i == TRUE){
-        strcpy(tmpi, "ON");
-    }
-    else{
-      strcpy(tmpi, "OFF");
-    }
-
-    int dim = strlen(tmp1) + strlen(tmpid) + strlen(tmp2) + strlen(tmps) + strlen(tmp3) + strlen(tmpi) + strlen(tmp4) + strlen(tmpt) + 1;
-
-    char * res = (char *) malloc (sizeof(char) * dim);
-
-    strcpy(res, tmp1);
-    strcat(res, tmpid);
-    strcat(res, tmp2);
-    strcat(res, tmps);
-    strcat(res, tmp3);
-    strcat(res, tmpi);
-    strcat(res, tmp4);
-    strcat(res, tmpt);
-
-    return res;
-}
-
 /* Funzione Bulb */
-void bulb(int id, int recupero){ //recupero booleano
+void bulb(int id, int recupero, char * nome){ //recupero booleano
   int status = FALSE;
   int interruttore = FALSE;
   time_t t_start = 0;
-  char nome[] = "BULB";
+  char * name = strdup(nome);
 
   int queue;
   msgbuf messaggio;
@@ -74,9 +31,9 @@ void bulb(int id, int recupero){ //recupero booleano
     }
     else{
       protocoll_parser(messaggio.msg_text, &msg);
-      status = atoi(msg[BULB_INF_STATO]);
-      interruttore = atoi(msg[BULB_INF_INTERRUTTORE]);
-      t_start = atoi(msg[BULB_INF_TIME]);
+      status = atoi(msg[BULB_STATO]);
+      interruttore = atoi(msg[BULB_INTERRUTTORE]);
+      t_start = atoi(msg[BULB_TSTART]);
     }
   }
 
@@ -143,17 +100,19 @@ void bulb(int id, int recupero){ //recupero booleano
           richiesta = MSG_INF;
         }
 
+        fd_write = open(wfifo, O_WRONLY); //apro fifo di scrittura
+
         printf("Codice richiesta: %d\n", richiesta);
         if((richiesta > 0) && ((msgrcv(queue, &messaggio,sizeof(messaggio.msg_text), 5, 0)) != -1)) { //quando ricevo la risposta
           printf("Ricevuta risposta\n");
-          fd_write = open(wfifo, O_WRONLY); //apro fifo di scrittura
           char **info_response;
           char *str_temp = (char *) malloc(sizeof(char) * 80);
           protocoll_parser(messaggio.msg_text, &info_response);
           memset(buf_w, 0, sizeof(buf_w)); //pulisco buf_w
           //concateno i dati ricevuti
           if (richiesta == MSG_INF) {
-            strcpy(buf_w, "\nNome: Bulb\n");
+            sprintf(str_temp, "Nome: %s\n", info_response[BULB_INF_NOME]);
+            strcat(buf_w, str_temp);
             sprintf(str_temp, "Id: %s\n", info_response[MSG_ID_MITTENTE]);
             strcat(buf_w, str_temp);
             sprintf(str_temp, "Stato: %s\n", info_response[BULB_INF_STATO]);
@@ -162,18 +121,18 @@ void bulb(int id, int recupero){ //recupero booleano
             strcat(buf_w, str_temp);
             sprintf(str_temp, "Tempo di utilizzo: %s\n", info_response[BULB_INF_TIME]);
             strcat(buf_w, str_temp);
-            write(fd_write, buf_w, strlen(buf_w)+1); //srivo su fifo buf_w
           }
           else if (richiesta == MSG_BULB_GETTIME) {
             sprintf(str_temp, "Tempo di utilizzo: %s\n", info_response[BULB_TIME]);
             strcpy(buf_w, str_temp);
-            write(fd_write, buf_w, strlen(buf_w)+1);
             }
-          else {
-            printf("Non ci concerne questa Operazione\n");
-          }
+          write(fd_write, buf_w, strlen(buf_w)+1); //srivo su fifo buf_w
           richiesta = -1;
           printf("Scrivo su fifo: %s\n", buf_w);
+        }
+        else {
+          strcpy(buf_w, "Questa operazione non ci concerne");
+          write(fd_write, buf_w, strlen(buf_w)+1);
         }
       }
 
@@ -201,6 +160,7 @@ void bulb(int id, int recupero){ //recupero booleano
       if(codice_messaggio(msg) == MSG_INF && controllo_bulb(msg,id)) { //richiesta info su me stesso
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_BULB);
         concat_string(&risposta, msg[MSG_ID_MITTENTE]); //concat id padre
+        concat_string(&risposta, name);
         concat_int(&risposta, status);
         concat_int(&risposta, interruttore);
         concat_int(&risposta, tempo_bulb_on(status, t_start));
@@ -229,7 +189,9 @@ void bulb(int id, int recupero){ //recupero booleano
       }
 
       else if(codice_messaggio(msg) == MSG_SPEGNI && controllo_bulb(msg, id)){
-        //kill(idf1, SIGTERM); - uccidere il sottoprocesso
+        if(idf > 0){
+          kill(idf, SIGTERM);
+        }
         exit(EXIT_SUCCESS);
       }
 
@@ -261,12 +223,7 @@ void bulb(int id, int recupero){ //recupero booleano
       else if(codice_messaggio(msg) == MSG_BULB_GETTIME && controllo_bulb(msg, id)){
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
         concat_int(&risposta, tempo_bulb_on(status, t_start));
-        if(atoi(msg[MSG_ID_MITTENTE]) == id){
-          send_message(q_ris, &risposta, risposta.msg_text, 5); //mando un messaggio alla fifo
-        }
-        else{
-          send_message(q_ris, &risposta, risposta.msg_text, 2);
-        }
+        send_message(q_ris, &risposta, risposta.msg_text, 5); //mando un messaggio alla fifo
       }
       else if(codice_messaggio(msg) == MSG_AGGIUNGI && controllo_bulb(msg, id)){
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
