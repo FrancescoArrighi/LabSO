@@ -26,11 +26,12 @@
 //dispositivi
 #define DEFAULT 0
 #define CONTROLLER 1
-#define HUB 2
-#define TIMER 3
-#define BULB 4
-#define WINDOW 5
-#define FRIDGE 6
+#define DEPOSITO 2
+#define HUB 3
+#define TIMER 4
+#define BULB 5
+#define WINDOW 6
+#define FRIDGE 7
 
 //pipes
 #define READ 0
@@ -39,6 +40,8 @@
 //funzioni
 #define ADD 1
 
+#define NUOVA_OPERAZIONE 4
+
 //messaggio base
 #define MSG_TYPE_DESTINATARIO 0
 #define MSG_TYPE_MITTENTE 1
@@ -46,10 +49,37 @@
 #define MSG_ID_MITTENTE 3
 #define MSG_OP 4
 
+#define MSG_RIMUOVIFIGLIO 3 //codice rimozione figlio (da tutti)
+#define MSG_SALVA_SPEGNI 2 //codice arresto
+#define MSG_SALVA_SPEGNI_FLAGRIMUOVI //se è TRUE allora manda un messaggio al padre di tipo MSG_RIMUOVIFIGLIO altrimenti no
+
 //messaggio info
 #define MSG_INF 1 //codice messaggio
-#define MSG_INF_ID_PADRE 5
+#define MSG_INF_IDPADRE 5
+#define MSG_INF_NOME
 #define MSG_INF_CONTROLDV_NFIGLI 6
+
+#define MSG_INF_RISP_HUB 311001 //risposta dell'hub a una richiesta di info
+#define MSG_INF_RISP_TIMER 411001
+
+
+#define MSG_INF_RISP_DEPO 211001 //risposta dell'hub a una richiesta di info
+
+#define MSG_ADD_DEVICE 210001
+#define MSG_ADD_TYPE_NEWDV 5
+
+#define MSG_RECUPERO_TYPE 5
+#define MSG_RECUPERO_ID 6
+
+#define MSG_RECUPERO_HUB 310001
+#define MSG_RECUPERO_HUB_NOME 7
+#define MSG_RECUPERO_HUB_INIZIOFIGLI 8
+
+#define MSG_RECUPERO_TIMER 410001
+#define MSG_RECUPERO_NOME 7
+#define MSG_RECUPERO_TIMER_FIGLIO 8
+
+
 //Struct
 typedef struct pair_int{
     int first;
@@ -336,18 +366,6 @@ void crea_queue(int id, int * queue){
   }
 }
 
-void crea_queue(int id, int * queue){
-  key_t key;
-  if((key = ftok("/tmp/", id)) == -1){ // crea la chiave
-      printf("errore 1\n");
-      exit(1);
-  }
-  if(((*queue) = msgget(key, IPC_CREAT)) == -1){ // crea il file se non esiste
-      printf("errore 2\n");
-      exit(1);
-  }
-}
-
 void bulb_info_r(char ** str){
     if(str[6][0] == '0'){
         printf("Stato: OFF\n" );
@@ -402,22 +420,22 @@ int itoa(int n, char **str){
   return i+1;
 }
 
- int controlla_validita(char ** str, int id){
-   int rt = FALSE;
-   if(atoi(str[0]) == CONTROLLER || (atoi(str[0]) == DEFAULT && str[5][0] == '0')){
-     printf("k1 %lld\n", atoi(str[3]));
-     int i;
-     for ( i = 0; str[3][i] != '\0'; i++) {
-       printf("> %d - %c\n", str[3][i], str[3][i]);
-     };
-     if(atoi(str[3]) == id || atoi(str[3]) == 0){
-       rt = TRUE;
-       printf("k2\n" );
-     }
+int controlla_validita(char ** str, int id){
+ int rt = FALSE;
+ if(atoi(str[0]) == CONTROLLER || (atoi(str[0]) == DEFAULT && str[5][0] == '0')){
+   printf("k1 %lld\n", atoi(str[3]));
+   int i;
+   for ( i = 0; str[3][i] != '\0'; i++) {
+     printf("> %d - %c\n", str[3][i], str[3][i]);
+   };
+   if(atoi(str[3]) == id || atoi(str[3]) == 0){
+     rt = TRUE;
+     printf("k2\n" );
    }
-   return rt;
+ }
+ return rt;
 }
-
+/*
 void risposta(){
   int queue;
   msgbuf messaggio;
@@ -460,7 +478,7 @@ void risposta(){
       printf("Errore 1\n" );
     }
   }
-}
+}*/
 
 int codice_messaggio(char ** msg){
   int rt = atoi(msg[MSG_OP]);
@@ -520,27 +538,6 @@ void get_all_info(int_list *queue){
     }
   }
   tree_print(tree);
-}
-
-
-void del(char ** cmd, int n, int_list figli_controller){
-
-}
-
-void link(char ** cmd, int n, int_list figli_controller){
-
-}
-
-void list(char ** cmd, int n){
-
-}
-
-void add(char ** cmd, int n){
-
-}
-
-void swtch(char ** cmd, int n){
-
 }
 
 void ricomponi_messaggio(char ** cmd, int n, char ** str){ // ricomponi_messaggio(cmd, &str);
@@ -603,121 +600,423 @@ void info(char ** cmd, int n, int_list * figli_controller, int my_queue){
   }
 }
 
-void hub(int id, int recupero, char * nome){
+void recupero_in_cascata(int myqueue, int gateway){
+  char ** msg;
+  if((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 10, 0)) == -1) {
+     printf("errore lettura ripristino\n");
+  }
+  protocoll_parser(messaggio.msg_text, &msg);
+  int type = atoi(msg[MSG_RECUPERO_TYPE]);
+  int myid = atoi(msg[MSG_RECUPERO_ID]);
+  if(type == HUB){
+    if(fork() == 0){
+      hub(myid, TRUE, "", gateway);
+      exit(0);
+    }
+  }
+  else if(type == TIMER){
+    if(fork() == 0){
+      timer(myid, TRUE, "", gateway);
+      exit(0);
+    }
+  }
+  else if(type == BULB){
+    if(fork() == 0){
+      bulb();
+      exit(0);
+    }
+  }
+  else if(type == WINDOW){
+    if(fork() == 0){
+      window();
+      exit(0);
+    }
+  }
+  else if(type == FRIDGE){
+    if(fork() == 0){
+      fridge();
+      exit(0);
+    }
+  }
+  msgsnd(queue, &messaggio ,sizeof(messaggio.msg_text), 0);
+}
+
+void hub(int id, int recupero, char * nome, int gateway){
   int_list * figli = create_int_list();
 
   int queue;
   msgbuf messaggio;
-  int gateway;
 
   int type_child;
 
-  if((idf1 = fork()) == 0){// codice figlio da fare
-    flag = 0;
-    crea_queue(id, &queue);
-    printf("\n----------------\npid_signal: %d\n  [ON]  => SIGUSR1\n  [OFF] => SIGUSR2\n----------------\n\n", getpid());
-    signal(SIGUSR1, sighandle_flag1);
-    signal(SIGUSR2, sighandle_flag2);
-    while (true) {
-      sleep(2);
-      if(flag == 1){ //accendi
-        flag = 0;
-        strcpy(messaggio.msg_text, "ON");
-        messaggio.msg_type = 1;
-        printf("=> %s\n", messaggio.msg_text);
-        msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
-      }
-      else if(flag == 2){ //spegni
-        flag = 0;
-        strcpy(messaggio.msg_text, "OFF");
-        messaggio.msg_type = 1;
-        printf("=> %s\n", messaggio.msg_text);
-        msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
-      }
-    }
-  }
-  else if((idf2 = fork()) == 0){// codice figlio
-    flag = 0;
-    crea_queue(id, &queue);
-    printf("\n----------------\npid_signal: %d\n  [getTime] => SIGUSR1\n----------------\n\n", getpid());
-    signal(SIGUSR1, sighandle_flag1);
-    signal(SIGUSR2, sighandle_flag2);
-    while (true) {
-      sleep(2);
-      if(flag == 1){ //accendi
-        flag = 0;
-        strcpy(messaggio.msg_text, "time");
-        messaggio.msg_type = 1;
-        printf("=> %s\n", messaggio.msg_text);
-        msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
-      }
-      else if(flag == 2){ //accendi
-        flag = 0;
-        strcpy(messaggio.msg_text, "RIP");
-        messaggio.msg_type = 1;
-        msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
-      }
-    }
+  if(fork() == 0){// codice figlio da fare
+    exit(0);
   }
 
   crea_queue(id, &queue);
 
   if(recupero){
-    printf("inizio\n" );
      if((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 10, 0)) == -1) {
         printf("errore lettura ripristino\n");
     }
     else{
-      stato = messaggio.msg_text[0]-'0';
-      interruttore = messaggio.msg_text[1]-'0';
-      char ** rt;
-      str_split(messaggio.msg_text, &rt);
-      t_start = atoi(rt[1]);
+      char ** msg;
+      int n = protocoll_parser(messaggio.msg_text, msg);
+      char * str;
+      strcpy(nome, msg[MSG_RECUPERO_HUB_NOME]);
+      for(int i = MSG_RECUPERO_HUB_INIZIOFIGLI; i < n; i++){
+        insert_int(atoi(msg[i]), 0, figli);
+        recupero_in_cascata(atoi(msg[i]));
+      }
     }
-    printf("fine\n" );
   }
 
   //inizio loop
   char ** msg;
-  while ((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 1, 0)) != -1) {
+  int msg_type;
+  while ((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), NUOVA_OPERAZIONE, 0)) != -1) {
+
+    msg_type = messaggio.msg_type;
     protocoll_parser(messaggio.msg_text, msg);
-    if(atoi(msg[MSG_OP]) == MSG_INF && atoi(msg[MSG_ID_DESTINATARIO]) == id){ //richiesta info su me stesso
+    if(msg_type == 2){
+      if(codice_messaggio(msg) == MSG_RIMUOVIFIGLIO){
+        int i, val, q = atoi(msg[MSG_RIMUOVIFIGLIO_QUEUE]);
+        for(i = 0; i < figli->n && get_int(i, &val, figli); i++){
+          if(val == q){
+            rm_int(i, figli);
+          }
+        }
+      }
+      else{
+        char * temp;
+        itoa(DEFAULT, temp);
+        strcpy(msg[MSG_ID_DESTINATARIO], temp);
+        ricomponi_messaggio(msg, &temp);
+        strcpy(messaggio.msg_text, temp);
+        msgsnd(gateway, &messaggio, sizeof(messaggio.msg_text), 0);
+      }
+    }
+    else if(msg_type == 1){
+      int type_dest = atoi(msg[MSG_TYPE_DESTINATARIO]);
+      int id_dest = atoi(msg[MSG_ID_DESTINATARIO]);
+      if( type_dest == type_child || type_dest == HUB || type_dest == TIMER || type_dest == DEFAULT){
+        if(codice_messaggio(msg) == MSG_INF && (id_dest == DEFAULT || id_dest == id)){ //richiesta info su tutti
 
-    }
-    else if(atoi(msg[MSG_OP]) == MSG_INF && atoi(msg[MSG_ID_DESTINATARIO]) == 0){ //richiesta info su tutti
+          //creo la risposta
+          msgbuf risposta;
+          risposta.msg_type = 2;
+          char * temp_str;
+          char * ris;
+          char * nf;
+          crea_messaggio_base(&temp_str, DEFAULT, HUB, msg[MSG_ID_MITTENTE], id, MSG_INF_RISP_HUB);
+          char * pid;
+          itoa(getpid(), &pid);
+          itoa(figli->n, &nf);
+          ris = (char *) malloc(sizeof(char) *(strlen(temp_str) + 1 + 2  + 1 + sizeof(nome) + 1 + sizeof(pid) + 1 + strlen(nf) + 1 + 1)); //messaggiobase \n  \n nome \n pid \n nfigli \n \0
+          ris[0] = '\0';
+          strcat(ris, temp_str);
+          strcat(ris, "\n");
+          strcat(ris, msg[MSG_ID_MITTENTE]);  //si suppone che solo il padre possa fare una richiesta di questo tipo
+          strcat(ris, "\n");
+          strcat(ris, nome);
+          strcat(ris, "\n");
+          strcat(ris, pid);
+          strcat(ris, "\n");
+          strcat(ris, nf);
+          strcat(ris, "\n");
+          strcpy(risposta.msg_text, ris);
 
+          //invio la risposta
+          msgsnd(gateway, &risposta, sizeof(risposta.msg_text), 0);
+
+          //creo la richiesta di info per i figli
+          itoa(DEFAULT, temp_str);
+          strcpy(msg[MSG_ID_DESTINATARIO], temp_str);
+          strcpy(msg[MSG_TYPE_DESTINATARIO], temp_str);
+          itoa(id, temp_str);
+          strcpy(msg[MSG_ID_MITTENTE], temp_str);
+          ricomponi_messaggio(msg, &temp_str);
+          strcpy(messaggio.msg_text, temp_str);
+
+          //invio la richiesta ai figli
+          broadcast(messaggio, figli);
+        }
+        else if(codice_messaggio(msg) == MSG_SALVA_SPEGNI && (atoi(msg[MSG_ID_MITTENTE]) == id || atoi(msg[MSG_ID_MITTENTE]) == DEFAULT)){ //codice RIP da implementare
+          char * str;
+
+          //creo il messaggio di ripristino
+          messaggio.msg_type = 10;
+          crea_messaggio_base(&str, HUB, HUB, id, id, MSG_RECUPERO_HUB);
+          strcpy(messaggio.msg_text, str);
+          strcat(messaggio.msg_text, "\n");
+          strcat(messaggio.msg_text, nome);
+          strcat(messaggio.msg_text, "\n");
+          int i, next;
+          for(i = 0; i < figli->n && get_int(i, &next, figli); i++){
+            itoa(next, &str);
+            strcat(messaggio.msg_text, str);
+            strcat(messaggio.msg_text, "\n");
+          }
+          msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
+
+          //invio il messaggio di chiusura ai figli
+          messaggio.msg_type = 1;
+          itoa(id, &str);
+          strcpy(msg[MSG_ID_MITTENTE], str);
+          itoa(DEFAULT, &str);
+          strcpy(msg[MSG_ID_DESTINATARIO], str);
+          strcpy(msg[MSG_TYPE_DESTINATARIO], str);
+          ricomponi_messaggio(msg, &str);
+          strcpy(messaggio.msg_text, str);
+          invia_broadcast(messaggio, figli);
+
+          if(atoi(msg[MSG_SALVA_SPEGNI_FLAGRIMUOVI]) == TRUE){
+            crea_messaggio_base(&str, DEFAULT, HUB, gateway, id, MSG_RIMUOVIFIGLIO);
+            strcpy(messaggio.msg_text, str);
+            strcat(messaggio.msg_text, '\n');
+            itoa(queue, &str);
+            strcat(messaggio.msg_text, str);
+            strcat(messaggio.msg_text, '\n');
+            messaggio.msg_type = 2;
+            msgsnd(gateway, &messaggio, sizeof(messaggio.msg_text), 0);
+          }
+          exit(0);
+        }
+        else{ // messaggio generico
+          char * str;
+          itoa(id, &str);
+          strcpy(msg[MSG_ID_MITTENTE], str);
+          ricomponi_messaggio(msg, &str);
+          strcpy(messaggio.msg_text, str);
+          invia_broadcast(messaggio, figli);
+        }
+      }
     }
-    else if(FALSE){ //codice RIP da implementare
-      messaggio.msg_type = 10;
-      messaggio.msg_text[0] = '0' + stato;
-      messaggio.msg_text[1] = '0' + interruttore;
-      messaggio.msg_text[2] = ' ';
-      messaggio.msg_text[3] = '\0';
-      char str[20];
-      sprintf(str, "%d" , t_start);
-      strcat(messaggio.msg_text, str);
-      msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
-      kill(idf1, SIGTERM);
-      kill(idf2, SIGTERM);
-      exit(0);
-    }
-    else{ // messaggio generico
-      msg[MSG_ID_MITTENTE]
-    }
-    printf("\n\ninterruttore: %d\n", interruttore);
-    printf("stato: %d\n", stato);
-    printf("time: %d\n", t_start);
   }
-  printf("Errore lettura queue BULB\n");
 }
 
-void leggiconsole(){
+void timer(int id, int recupero, char * nome, int gateway){
+  int figlio = -1 // se negativo non ha un figlio
+
+  int queue;
+  msgbuf messaggio;
+
+  int type_child;
+
+  if(fork() == 0){// codice figlio da fare
+    exit(0);
+  }
+
+  crea_queue(id, &queue);
+
+  if(recupero){
+     if((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 10, 0)) == -1) {
+        printf("errore lettura ripristino\n");
+    }
+    else{
+      char ** msg;
+      int n = protocoll_parser(messaggio.msg_text, msg);
+      char * str;
+      strcpy(nome, msg[MSG_RECUPERO_TIMER_NOME]);
+      figlio = atoi(msg[MSG_RECUPERO_TIMER_FIGLIO]);
+    }
+  }
+
+  //inizio loop
+  char ** msg;
+  int msg_type;
+  while ((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 1, 0)) != -1) {
+    msg_type = messaggio.msg_type;
+    protocoll_parser(messaggio.msg_text, msg);
+    if(msg_type == 2){
+      if(codice_messaggio(msg) == MSG_RIMUOVIFIGLIO){ //richiesta info su tutti
+        if(figlio == atoi(msg[MSG_RIMUOVIFIGLIO_QUEUE]){
+          figlio = -1;
+        }
+      }
+      else{
+        char * temp;
+        itoa(DEFAULT, temp);
+        strcpy(msg[MSG_ID_DESTINATARIO], temp);
+        ricomponi_messaggio(msg, &temp);
+        strcpy(messaggio.msg_text, temp);
+        msgsnd(gateway, &messaggio, sizeof(messaggio.msg_text), 0);
+      }
+    }
+    else if(msg_type == 1){
+      int type_dest = atoi(msg[MSG_TYPE_DESTINATARIO]);
+      int id_dest = atoi(msg[MSG_ID_DESTINATARIO]);
+      if( type_dest == type_child || type_dest == HUB || type_dest == TIMER || type_dest == DEFAULT){
+        if(codice_messaggio(msg) == MSG_INF && (id_dest == DEFAULT || id_dest == id)){ //richiesta info su tutti
+
+          //creo la risposta
+          msgbuf risposta;
+          risposta.msg_type = 2;
+          char * temp_str;
+          char * ris;
+          char * nf;
+          crea_messaggio_base(&temp_str, DEFAULT, TIMER, msg[MSG_ID_MITTENTE], id, MSG_INF_RISP_TIMER);
+          char * pid;
+          itoa(getpid(), &pid);
+          nf = (char *) malloc(sizeof(char) * 2);
+          if(figlio >= 0){
+            strcpy(nd, "1");
+          }
+          else{
+            strcpy(nd, "0");
+          }
+          ris = (char *) malloc(sizeof(char) *(strlen(temp_str) + 1 + 2  + 1 + sizeof(nome) + 1 + sizeof(pid) + 1 + strlen(nf) + 1 + 1)); //messaggiobase \n  \n nome \n pid \n nfigli \n \0
+          ris[0] = '\0';
+          strcat(ris, temp_str);
+          strcat(ris, "\n");
+          strcat(ris, msg[MSG_ID_MITTENTE]);  //si suppone che solo il padre possa fare una richiesta di questo tipo
+          strcat(ris, "\n");
+          strcat(ris, nome);
+          strcat(ris, "\n");
+          strcat(ris, pid);
+          strcat(ris, "\n");
+          strcat(ris, nf);
+          strcat(ris, "\n");
+          strcpy(risposta.msg_text, ris);
+
+          //invio la risposta
+          msgsnd(gateway, &risposta, sizeof(risposta.msg_text), 0);
+
+          //creo la richiesta di info per i figli
+          if(figlio >= 0){
+            itoa(DEFAULT, temp_str);
+            strcpy(msg[MSG_ID_DESTINATARIO], temp_str);
+            strcpy(msg[MSG_TYPE_DESTINATARIO], temp_str);
+            itoa(id, temp_str);
+            strcpy(msg[MSG_ID_MITTENTE], temp_str);
+            ricomponi_messaggio(msg, &temp_str);
+            strcpy(messaggio.msg_text, temp_str);
+            msgsnd(figlio, &messaggio, sizeof(risposta.msg_text), 0);
+          }
+        }
+        else if(codice_messaggio(msg) == MSG_SALVA_SPEGNI && (atoi(msg[MSG_ID_MITTENTE]) == id || atoi(msg[MSG_ID_MITTENTE]) == DEFAULT)){ //codice RIP da implementare
+          char * str;
+
+          //creo il messaggio di ripristino
+          messaggio.msg_type = 10;
+          crea_messaggio_base(&str, TIMER, TIMER, id, id, MSG_RECUPERO_TIMER);
+          strcpy(messaggio.msg_text, str);
+          strcat(messaggio.msg_text, "\n");
+          strcat(messaggio.msg_text, nome);
+          strcat(messaggio.msg_text, "\n");
+          itoa(figlio, &str);
+          strcat(messaggio.msg_text, str);
+          strcat(messaggio.msg_text, "\n");
+          msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
+
+          //invio il messaggio di chiusura ai figli
+          if(figlio >= 0){
+            messaggio.msg_type = 1;
+            itoa(id, &str);
+            strcpy(msg[MSG_ID_MITTENTE], str);
+            itoa(DEFAULT, &str);
+            strcpy(msg[MSG_ID_DESTINATARIO], str);
+            strcpy(msg[MSG_TYPE_DESTINATARIO], str);
+            ricomponi_messaggio(msg, &str);
+            strcpy(messaggio.msg_text, str);
+          }
+          if(atoi(msg[MSG_SALVA_SPEGNI_FLAGRIMUOVI]) == TRUE){
+            crea_messaggio_base(&str, DEFAULT, TIMER, gateway, id, MSG_RIMUOVIFIGLIO);
+            strcpy(messaggio.msg_text, str);
+            strcat(messaggio.msg_text, '\n');
+            itoa(queue, &str);
+            strcat(messaggio.msg_text, str);
+            strcat(messaggio.msg_text, '\n');
+            messaggio.msg_type = 2;
+            msgsnd(gateway, &messaggio, sizeof(messaggio.msg_text), 0);
+          }
+          exit(0);
+        }
+        else{ // messaggio generico
+          char * str;
+          itoa(id, &str);
+          strcpy(msg[MSG_ID_MITTENTE], str);
+          ricomponi_messaggio(msg, &str);
+          strcpy(messaggio.msg_text, str);
+          invia_broadcast(messaggio, figli);
+        }
+      }
+    }
+  }
+}
+
+void del(char ** cmd, int n, int_list figli_controller){
+
+}
+
+void link(char ** cmd, int n, int_list figli_controller){
+
+}
+
+void list(char ** cmd, int n){
+
+}
+
+void rimuovi_maiuscole(char * str){
+  if(str != NULL){
+    int i, k = 'a' -'A';
+    for(i = 0; i <= strlen(str); i++){
+      if(str[i] >= 'A' && str[i] <= 'Z'){
+        str[i] += k;
+      }
+    }
+  }
+}
+
+void add(char ** cmd, int n, int q_dep){
+  char * str;
+  msgbuf messaggio;
+  int flag = TRUE;
+  if(n == 2){
+    rimuovi_maiuscole(cmd[1]);
+    crea_messaggio_base(&str, DEPOSITO, CONTROLLER, DEPOSITO, CONTROLLER, MSG_ADD_DEVICE);
+    char * temp;
+    strcpy(messaggio.msg_text, str);
+    if(strcmp(cmd[1], "hub") == 0){
+      itoa(HUB, &str);
+    }
+    else if(strcmp(cmd[1], "timer") == 0){
+      itoa(TIMER, &str);
+    }
+    else if(strcmp(cmd[1], "bulb") == 0){
+      itoa(BULB, &str);
+    }
+    else if(strcmp(cmd[1], "window") == 0){
+      itoa(WINDOW, &str);
+    }
+    else if(strcmp(cmd[1], "fridge") == 0){
+      itoa(FRIDGE, &str);
+    }
+    else{
+      flag = FALSE;
+    }
+    if(flag){
+      strcat(messaggio.msg_text, "/n");
+      strcat(messaggio.msg_text, str);
+      strcat(messaggio.msg_text, "/n");
+      messaggio.msg_type = 1;
+      msgsnd(q_dep, &messaggio, sizeof(messaggio.msg_text), 0);
+    }
+  }
+}
+
+void swtch(char ** cmd, int n){
+
+}
+
+void controller(int myid, int id_deposito){
     char * str = (char *) malloc(sizeof(char) * 110);
     char ** cmd;
     int_list figli;
     int n;
-    int my_id = 1;
-    int my_queue = crea_queue(my_id,&queue);
+    int my_queue, queue_deposito;
+    crea_queue(myid, &my_queue);
+    crea_queue(id_deposito, &queue_deposito);
 
     int flag = TRUE;
     while (flag) {
@@ -728,7 +1027,7 @@ void leggiconsole(){
 
         }
         else if(strcmp(cmd[0], "add") == 0){
-          add(cmd,n);
+          add(cmd, n, queue_deposito);
         }
         else if(strcmp(cmd[0], "del") == 0){
           del(cmd, n, figli);
@@ -751,40 +1050,150 @@ void leggiconsole(){
     }
 }
 
-int main() {
-  int queue;
+void deposito(int myid, int id_controller){
+  int my_queue, q_contr;
+  crea_queue(myid, &my_queue);
+  crea_queue(myid, &q_contr);
+
+  int_list * figli = create_int_list();
+
   msgbuf messaggio;
-  if(fork()){
-    printf("inizio\n" );
-    messaggio.msg_type = 1;
-    strcpy(messaggio.msg_text, "ciao!");
-    crea_queue(100,&queue);
-    msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
-    strcpy(messaggio.msg_text, "fail");
-    printf("fine\n" );
+  char ** msg;
+  int msg_type;
+  while ((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 1, 0)) != -1) {
+    msg_type = messaggio.msg_type;
+    protocoll_parser(messaggio.msg_text, msg);
+    if(msg_type == 2){
+      char * temp;
+      itoa(DEFAULT, temp);
+      strcpy(msg[MSG_ID_DESTINATARIO], temp);
+      ricomponi_messaggio(msg, &temp);
+      strcpy(messaggio.msg_text, temp);
+      msgsnd(q_cont, &messaggio, sizeof(messaggio.msg_text), 0);
+    }
+    else if(msg_type == 1){
+      int type_dest = atoi(msg[MSG_TYPE_DESTINATARIO]);
+      int id_dest = atoi(msg[MSG_ID_DESTINATARIO]);
+      if(codice_messaggio(msg) == MSG_ADD_DEVICE && (id_dest == DEFAULT || id_dest == myid)){
+        int new_id = atoi(msg[MSG_ADD_ID_NEWDV]);
+        if(atoi(msg[MSG_ADD_TYPE_NEWDV]) == HUB){
+          if(fork() == 0){
+            hub(); //inserire campi
+            exit(0);
+          }
+        }
+        else if(atoi(msg[MSG_ADD_TYPE_NEWDV]) == TIMER){
+          if(fork() == 0){
+            timer(); //inserire campi
+            exit(0);
+          }
+        }
+        else if(atoi(msg[MSG_ADD_TYPE_NEWDV]) == BULB){
+          if(fork() == 0){
+            bulb(); //inserire campi
+            exit(0);
+          }
+        }
+        else if(atoi(msg[MSG_ADD_TYPE_NEWDV]) == WINDOW){
+          if(fork() == 0){
+            window(); //inserire campi
+            exit(0);
+          }
+        }
+        else if(atoi(msg[MSG_ADD_TYPE_NEWDV]) == FRIDGE){
+          if(fork() == 0){
+            fridge(); //inserire campi
+            exit(0);
+          }
+        }
+
+        //genero la risposta con le informazioni iniziali
+        char * temp_str;
+        int temp_q;
+        messaggio.msg_type = 1;
+        crea_messaggio_base(&temp_str, DEFAULT, DEPOSITO, new_id, DEPOSITO, MSG_INF);
+        strcpy(messaggio.msg_text, temp_str);
+        create_queue(new_id, &temp_q);
+        insert_int(temp_q, 0, figli);
+        msgsnd(temp_q, &messaggio, sizeof(risposta.msg_text), 0);
+      }
+      else if(codice_messaggio(msg) == MSG_INF && (id_dest == DEFAULT || id_dest == myid)){ //richiesta info su tutti
+
+        //creo la risposta
+        msgbuf risposta;
+        risposta.msg_type = 2;
+        char * temp_str;
+        char * ris;
+        char * nf;
+        crea_messaggio_base(&temp_str, CONTROLLER, DEPOSITO, CONTROLLER, DEPOSITO, MSG_INF_RISP_DEPO);
+        char * pid;
+        itoa(getpid(), &pid);
+        itoa(figli->n, &nf);
+        ris = (char *) malloc(sizeof(char) *(strlen(temp_str) + 1 + 2  + 1 + sizeof(nome) + 1 + sizeof(pid) + 1 + strlen(nf) + 1 + 1)); //messaggiobase \n  \n nome \n pid \n nfigli \n \0
+        ris[0] = '\0';
+        strcat(ris, temp_str);
+        strcat(ris, "\n");
+        strcat(ris, "-1");  //il deposito non ha un padre
+        strcat(ris, "\n");
+        strcat(ris, "DEPOSITO");
+        strcat(ris, "\n");
+        strcat(ris, pid);
+        strcat(ris, "\n");
+        strcat(ris, nf);
+        strcat(ris, "\n");
+        strcpy(risposta.msg_text, ris);
+
+        //invio la risposta
+        msgsnd(q_contr, &risposta, sizeof(risposta.msg_text), 0);
+
+        //creo la richiesta di info per i figli
+        itoa(DEFAULT, temp_str);
+        strcpy(msg[MSG_ID_DESTINATARIO], temp_str);
+        strcpy(msg[MSG_TYPE_DESTINATARIO], temp_str);
+        itoa(myid, temp_str);
+        strcpy(msg[MSG_ID_MITTENTE], temp_str);
+        ricomponi_messaggio(msg, &temp_str);
+        strcpy(messaggio.msg_text, temp_str);
+
+        //invio la richiesta ai figli
+        broadcast(messaggio, figli);
+      }
+      else{ // messaggio generico
+        char * str;
+        itoa(myid, &str);
+        strcpy(msg[MSG_ID_MITTENTE], str);
+        ricomponi_messaggio(msg, &str);
+        strcpy(messaggio.msg_text, str);
+        invia_broadcast(messaggio, figli);
+      }
+    }
   }
-  else{
-    printf("sleep\n" );
-    sleep(2);
-    printf("sleep fine\n" );
-    crea_queue(100,&queue);
-    msgrcv(queue, &messaggio, sizeof(messaggio.msg_text), 1, 0);
-    printf("|%s|\n", messaggio.msg_text );
+}
+
+int leggi(int queue, msgbuf * messaggio, int p, float t){
+  int rt = TRUE;
+  int flag = TRUE;
+  int i;
+  for(i = 0; i < (20 * t) && (errno == ENOMSG || flag); i++){
+    usleep(50000); //microsecondi
+    errno = 0;
+    msgrcv(queue, messaggio ,sizeof(messaggio->msg_text), p, IPC_NOWAIT);
+    flag = FALSE;
   }
-/*
-  if(fork() == 0){
-    risposta();
+  if(i >= (20 * t)){
+    rt = FALSE;
   }
-  else{
-    sleep(1);
-    lampadina_troll();
+  return rt;
+}
+
+int main() {
+  int id_controller = CONTROLLER;
+  int id_deposito = DEPOSITO;
+  if (fork () > 0) { //codice centralina
+    controller(id_controller, id_deposito);
   }
-    //bulb(1,1);
-    /*int queue;
-    msgbuf messaggio;
-    crea_queue(1, &queue);
-    strcpy(messaggio.msg_text,"0");
-    messaggio.msg_type = 10;
-    msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);*/
-    return 0;
+  else{ // codice magazzino
+    deposito(id_deposito, id_controller);
+  }
+  return 0;
 }
