@@ -33,8 +33,8 @@ void window(int id, int recupero, char * nome){
     }
     else{
       protocoll_parser(messaggio.msg_text, &msg);
-      status = atoi(msg[WINDOW_STATO]);
-      t_start = atoi(msg[WINDOW_TSTART]);
+      status = atoi(msg[WINDOW_REC_STATO]);
+      t_start = atoi(msg[WINDOW_REC_TSTART]);
     }
   }
 
@@ -53,8 +53,6 @@ void window(int id, int recupero, char * nome){
     char ** cmd;
     char * rfifo = percorso_file(id,READ);
     char * wfifo = percorso_file(id,WRITE);
-    mkfifo(rfifo, 0666); // percorso e permessi
-    mkfifo(wfifo, 0666);
     flag = TRUE;
 
     if((mkfifo(wfifo, 0666) == -1) && (errno != EEXIST)){ //se path esiste già continuo normalmente
@@ -71,13 +69,13 @@ void window(int id, int recupero, char * nome){
       richiesta = -1;
       fd_read = open(rfifo, O_RDONLY);
       printf("Pronta per leggere\n");
-      read(fd_read, buf_r, 80); // Leggo dalla FIFO
+      read(fd_read, buf_r, BUF_SIZE); // Leggo dalla FIFO
       printf("Ho letto il comando\n");
       printf("CMD : %s\n", buf_r);
       n_arg = str_split(buf_r, &cmd); // Numero di argomenti passati
 
-      if(strcmp(cmd[0], "exit") == 0){ // se il comando inserito è exit esco
-        printf("Fine lettura\n");
+      if(strcmp(cmd[1], "chiuditi") == 0){ // se il comando inserito è close esco
+        printf("Fine comunicazione\n");
         flag = FALSE;
         //kill(getpid(),SIGTERM); //Io ucciderei il processo qua
       }
@@ -149,7 +147,8 @@ void window(int id, int recupero, char * nome){
     }
     unlink(rfifo); //una volta uscita dal ciclo elimino file fifo
     unlink(wfifo);
-    //free(rfifo); // Libero la memoria allocata
+    free(rfifo); // Libero la memoria allocata
+    free(wfifo); // Libero la memoria allocata
   }
 
   else {
@@ -280,4 +279,21 @@ int tempo_window_on(int s, time_t t) {
   }
 
   return res;
+}
+
+int equal_window(msgbuf * msg1, msgbuf * msg2){
+  printf("Window: confronto in corso\n");
+  int rt = FALSE;
+  char **buf1, **buf2;
+  protocoll_parser(msg1->msg_text, &buf1);
+  protocoll_parser(msg2->msg_text, &buf2);
+  if(strcmp(buf1[WINDOW_INF_STATO], buf2[WINDOW_INF_STATO]) == 0 && (strcmp(buf1[WINDOW_INF_NOME], buf2[WINDOW_INF_NOME]) == 0)) {
+    printf("Window: Messaggi uguali\n");
+    rt = TRUE;
+  }
+  else {
+    printf("Window: Messaggi diversi\n");
+  }
+
+  return rt;
 }

@@ -31,9 +31,9 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
     }
     else{
       protocoll_parser(messaggio.msg_text, &msg);
-      status = atoi(msg[BULB_STATO]);
-      interruttore = atoi(msg[BULB_INTERRUTTORE]);
-      t_start = atoi(msg[BULB_TSTART]);
+      status = atoi(msg[BULB_REC_STATO]);
+      interruttore = atoi(msg[BULB_REC_INTERRUTTORE]);
+      t_start = atoi(msg[BULB_REC_TSTART]);
     }
   }
 
@@ -68,13 +68,13 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
       richiesta = -1;
       fd_read = open(rfifo, O_RDONLY);
       printf("Pronta per leggere\n");
-      read(fd_read, buf_r, 80); // Leggo dalla FIFO
+      read(fd_read, buf_r, BUF_SIZE); // Leggo dalla FIFO
       printf("Ho letto il comando\n");
       printf("CMD : %s\n", buf_r);
       n_arg = str_split(buf_r, &cmd); // Numero di argomenti passati
 
-      if(strcmp(cmd[0], "exit") == 0){ // se il comando inserito è exit esco
-        printf("Fine lettura\n");
+      if(strcmp(cmd[1], "chiuditi") == 0){ // se il comando inserito è close esco
+        printf("Fine comunicazione\n");
         flag = FALSE;
         //kill(getpid(),SIGTERM); //Io ucciderei il processo qua
       }
@@ -111,7 +111,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
           memset(buf_w, 0, sizeof(buf_w)); //pulisco buf_w
           //concateno i dati ricevuti
           if (richiesta == MSG_INF) {
-            sprintf(str_temp, "Nome: %s\n", info_response[BULB_INF_NOME]);
+            sprintf(str_temp, "\nNome: %s\n", info_response[BULB_INF_NOME]);
             strcat(buf_w, str_temp);
             sprintf(str_temp, "Id: %s\n", info_response[MSG_ID_MITTENTE]);
             strcat(buf_w, str_temp);
@@ -123,7 +123,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
             strcat(buf_w, str_temp);
           }
           else if (richiesta == MSG_BULB_GETTIME) {
-            sprintf(str_temp, "Tempo di utilizzo: %s\n", info_response[BULB_TIME]);
+            sprintf(str_temp, "\nTempo di utilizzo: %s\n", info_response[BULB_TIME]);
             strcpy(buf_w, str_temp);
             }
           write(fd_write, buf_w, strlen(buf_w)+1); //srivo su fifo buf_w
@@ -143,7 +143,8 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
     }
     unlink(rfifo); //una volta uscita dal ciclo elimino file fifo
     unlink(wfifo);
-    //free(rfifo); // Libero la memoria allocata
+    free(rfifo); // Libero la memoria allocata
+    free(wfifo); // Libero la memoria allocata
   }
 
   else {
@@ -175,6 +176,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
       else if(codice_messaggio(msg) == MSG_OVERRIDE && controllo_bulb(msg, id)){
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_BULB);
         concat_string(&risposta, msg[MSG_ID_MITTENTE]); //concat id padre
+        concat_string(&risposta, name);
         concat_int(&risposta, status);
         concat_int(&risposta, interruttore);
         concat_int(&risposta, tempo_bulb_on(status, t_start));
@@ -314,4 +316,21 @@ int tempo_bulb_on(int s, time_t t) {
   }
 
   return res;
+}
+
+int equal_bulb(msgbuf * msg1, msgbuf * msg2){
+  printf("Bulb: confronto in corso\n");
+  int rt = FALSE;
+  char **buf1, **buf2;
+  protocoll_parser(msg1->msg_text, &buf1);
+  protocoll_parser(msg2->msg_text, &buf2);
+  if((strcmp(buf1[BULB_INF_STATO], buf2[BULB_INF_STATO]) == 0) && (strcmp(buf1[BULB_INF_INTERRUTTORE], buf2[BULB_INF_INTERRUTTORE]) == 0) && (strcmp(buf1[BULB_INF_NOME], buf2[BULB_INF_NOME]) == 0)) {
+    printf("Bulb: Messaggi uguali\n");
+    rt = TRUE;
+  }
+  else {
+    printf("Bulb: Messaggi diversi\n");
+  }
+
+  return rt;
 }

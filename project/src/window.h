@@ -18,8 +18,8 @@
 #define WINDOW_INF_TIME 8
 
 //Campo per Ripristino
-#define WINDOW_STATO 5
-#define WINDOW_TSTART 6
+#define WINDOW_REC_STATO 5
+#define WINDOW_REC_TSTART 6
 
 //Campo GetTime
 #define WINDOW_TIME 5
@@ -30,4 +30,6 @@ void concat_dati_window(msgbuf * m, int s, time_t t);
 int controllo_window(char ** str, int id);
 void apri_window(int * s, time_t * t);
 void chiudi_window(int * s);
+int equal_window(msgbuf * msg1, msgbuf * msg2);
+
 #endif

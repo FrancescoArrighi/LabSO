@@ -19,9 +19,9 @@
 #define BULB_INF_TIME 9
 
 //Campo per Ripristino
-#define BULB_STATO 5
-#define BULB_INTERRUTTORE 6
-#define BULB_TSTART 7
+#define BULB_REC_STATO 5
+#define BULB_REC_INTERRUTTORE 6
+#define BULB_REC_TSTART 7
 
 //Campo GetTime
 #define BULB_TIME 5
@@ -32,4 +32,5 @@ int controllo_bulb(char ** str, int id);
 void inverti_interruttore(int * s, int * i, time_t *t);
 void inverti_stato(int * s, int * i, time_t *t);
 int tempo_bulb_on(int s, time_t t);
+int equal_bulb(msgbuf * msg1, msgbuf * msg2);
 #endif
