@@ -34,6 +34,15 @@ int check_cmd(char **cmd, int n_arg){ //controllo se il comando è tra quelli am
       rt = TRUE;
     }
   }
+  else if(strcmp(cmd[1], "interruttore") == 0  && (n_arg == 2)){
+    rt = TRUE;
+  }
+  else if(strcmp(cmd[1], "open") == 0  && (n_arg == 2)){
+    rt = TRUE;
+  }
+  else if(strcmp(cmd[1], "close") == 0  && (n_arg == 2)){
+    rt = TRUE;
+  }
   return rt;
 }
 
