@@ -12,11 +12,11 @@
 #define MSG_BULB_GETTIME 410003
 #define MSG_BULB_GETINFO 410004
 
-//Campi per ripristino
-#define BULB_INF_STATO 5
-#define BULB_INF_INTERRUTTORE 6
-#define BULB_INF_TIME 7
-//Richiesta di Time
+//Campi per ripristino (5 id padre)
+#define BULB_INF_STATO 6
+#define BULB_INF_INTERRUTTORE 7
+#define BULB_INF_TIME 8
+//Campo Time
 #define BULB_TIME 5
 
 void bulb(int id, int recupero);
