@@ -7,14 +7,9 @@
 //msg.type = 2 => invio
 
 /*
-  - da modificare priorità msgrcv di figlio fifo
-  - da mettersi d'accordo su MSG_BUF
-  - msg_inf -> rispondo con msg_inf_fridge
-  - OVVERIDE -> ritorno un info + eventuale funzione per il confronto di due msg
-  - msg_rimuovi -> ackn [crea_messaggio_base(..., ACKN)]
-  - get terminal type ->
-
+  funzioni get sono riservate a fifo
 */
+
 
 void fridge(int id, int recupero, char *nome){ //recupero booleano
   t_frigo frigo;
@@ -32,35 +27,35 @@ void fridge(int id, int recupero, char *nome){ //recupero booleano
 
   int queue;
   msgbuf messaggio;
-  msgbuf messaggio_risposta;
+  msgbuf risposta;
 
   create_queue(id, &queue);
   printf("Id frigo: %d\n", frigo.id);
 
   if(recupero){
     printf("inizio\n" );
-    if((msgrcv(queue, &messaggio_risposta ,sizeof(messaggio_risposta.msg_text), 10, 0)) == -1) {
+    if((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 10, 0)) == -1) {
       printf("errore lettura ripristino\n");
     }
     else{
       printf("recupero\n");
       int new_delay;
       char ** msg;
-      protocoll_parser(messaggio_risposta.msg_text, &msg);
-      frigo.stato = atoi(msg[FRIDGE_REC_STATO]);
-      frigo.interruttore = atoi(msg[FRIDGE_REC_INTERRUTTORE]);
-      frigo.termostato = atoi(msg[FRIDGE_REC_TERM]);
-      frigo.time = atoi(msg[FRIDGE_REC_TIME]);
-      frigo.delay = atoi(msg[FRIDGE_REC_DELAY]);
-      frigo.percentuale = atoi(msg[FRIDGE_REC_PERC]);
-      frigo.nome = msg[FRIDGE_REC_NOME];
-      t_start = atoi(msg[FRIDGE_REC_TSTART]);
-      frigo.id = atoi(msg[FRIDGE_REC_ID]);
+      protocoll_parser(messaggio.msg_text, &msg);
+      frigo.stato = atoi(msg[MSG_FRIDGE_REC_STATO]);
+      frigo.interruttore = atoi(msg[MSG_FRIDGE_REC_INTERRUTTORE]);
+      frigo.termostato = atoi(msg[MSG_FRIDGE_REC_TERM]);
+      frigo.time = atoi(msg[MSG_FRIDGE_REC_TIME]);
+      frigo.delay = atoi(msg[MSG_FRIDGE_REC_DELAY]);
+      frigo.percentuale = atoi(msg[MSG_FRIDGE_REC_PERC]);
+      frigo.nome = msg[MSG_FRIDGE_REC_NOME];
+      t_start = atoi(msg[MSG_FRIDGE_REC_TSTART]);
+      frigo.id = atoi(msg[MSG_FRIDGE_REC_ID]);
       if(frigo.stato){ //se frigo è aperto
       	new_delay = frigo.delay - frigo.time; //recupero delay rimanente
       	apri_frigo(&frigo, &t_start, &allarme, new_delay);
       }
-      /*
+
       printf("Id frigo: %d\n", frigo.id);
       printf("stato: %d\n", frigo.stato);
       printf("Interruttore: %d\n", frigo.interruttore);
@@ -70,7 +65,7 @@ void fridge(int id, int recupero, char *nome){ //recupero booleano
       printf("percentuale: %d\n", frigo.percentuale);
       printf("nome: %s\n", frigo.nome);
       printf("new delay: %d\n", new_delay);
-      */
+
 
       //msgctl(queue, IPC_RMID, NULL); //rimuovo la coda precedentemente creata
     }
@@ -109,25 +104,25 @@ void fridge(int id, int recupero, char *nome){ //recupero booleano
       if((n_arg == 4) && strcmp(cmd[1], "set") == 0){
         printf("richiesta set\n");
         if(strcmp(cmd[2], "interruttore") == 0){
-          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_SET_INTERRUTTORE);
+          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_SETINTERRUTTORE);
           concat_string(&messaggio, cmd[3]);
           send_message(queue, &messaggio, messaggio.msg_text, NUOVA_OPERAZIONE);
           printf("invio messaggio\n");
         }
         else if(strcmp(cmd[2], "delay") == 0){
-          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_SET_DELAY);
+          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_SETDELAY);
           concat_string(&messaggio, cmd[3]);
           send_message(queue, &messaggio, messaggio.msg_text, NUOVA_OPERAZIONE);
           printf("invio messaggio\n");
         }
         else if(strcmp(cmd[2], "percentuale") == 0){
-          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_SET_PERC);
+          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_SETPERC);
           concat_string(&messaggio, cmd[3]);
           send_message(queue, &messaggio, messaggio.msg_text, NUOVA_OPERAZIONE);
           printf("invio messaggio\n");
         }
         else if(strcmp(cmd[2], "termostato") == 0){
-          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_SET_TERMOSTATO);
+          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_SETTERMOSTATO);
           concat_string(&messaggio, cmd[3]);
           send_message(queue, &messaggio, messaggio.msg_text, NUOVA_OPERAZIONE);
           printf("invio messaggio\n");
@@ -142,79 +137,78 @@ void fridge(int id, int recupero, char *nome){ //recupero booleano
           richiesta = MSG_INF;
         }
         else if((strcmp(cmd[2], "time") == 0)){
-          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_GET_TIME);
-          richiesta = FRIDGE_GET_TIME;
+          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_GETTIME);
+          richiesta = MSG_FRIDGE_GETTIME;
         }
         else if((strcmp(cmd[2], "stato") == 0)){
-          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_GET_STATO);
-          richiesta = FRIDGE_GET_STATO;
+          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_GETSTATO);
+          richiesta = MSG_FRIDGE_GETSTATO;
         }
         else if((strcmp(cmd[2], "delay") == 0)){
-          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_GET_DELAY);
-          richiesta = FRIDGE_GET_DELAY;
+          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_GETDELAY);
+          richiesta = MSG_FRIDGE_GETDELAY;
         }
         else if((strcmp(cmd[2], "percentuale") == 0)){
-          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_GET_PERC);
-          richiesta = FRIDGE_GET_PERC;
+          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_GETPERC);
+          richiesta = MSG_FRIDGE_GETPERC;
         }
         else if((strcmp(cmd[2], "termostato") == 0)){
-          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_GET_TERMOSTATO);
-          richiesta = FRIDGE_GET_TERMOSTATO;
+          crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_GETTERMOSTATO);
+          richiesta = MSG_FRIDGE_GETTERMOSTATO;
         }
 
         send_message(queue, &messaggio, messaggio.msg_text, NUOVA_OPERAZIONE); //invio la richiesta di info al frigo
 
-        if((richiesta > 0) && ((msgrcv(queue, &messaggio_risposta,sizeof(messaggio_risposta.msg_text), 5, 0)) != -1)){ //quando ricevo la risposta
+        if((richiesta > 0) && ((msgrcv(queue, &messaggio,sizeof(messaggio.msg_text), MSG_FIFO, 0)) != -1)){ //quando ricevo la risposta
           printf("Apro fifo scrittura\n");
           fd_write = open(fifo_w, O_WRONLY); //apro fifo di scrittura
           char **info_response;
           char *str_temp = (char *) malloc(sizeof(char) * 40);
-          protocoll_parser(messaggio_risposta.msg_text, &info_response);
+          protocoll_parser(messaggio.msg_text, &info_response);
           memset(buf_w, 0, sizeof(buf_w)); //pulisco buf_w
           switch (richiesta) {
             case MSG_INF:
-              sprintf(str_temp, "Nome: %s\n", info_response[FRIDGE_INF_NOME]); //concateno i dati ricevuti
+              sprintf(str_temp, "Nome: %s\n", info_response[MSG_FRIDGE_INF_NOME]); //concateno i dati ricevuti
               strcat(buf_w, str_temp);
               sprintf(str_temp, "Id: %s\n", info_response[MSG_ID_MITTENTE]);
               strcat(buf_w, str_temp);
-              sprintf(str_temp, "Stato: %s\n", info_response[FRIDGE_INF_STATO]);
+              sprintf(str_temp, "Stato: %s\n", info_response[MSG_FRIDGE_INF_STATO]);
               strcat(buf_w, str_temp);
-              sprintf(str_temp, "Interruttore: %s\n", info_response[FRIDGE_INF_INTERRUTTORE]);
+              sprintf(str_temp, "Interruttore: %s\n", info_response[MSG_FRIDGE_INF_INTERRUTTORE]);
               strcat(buf_w, str_temp);
-              sprintf(str_temp, "Temperatura interna: %s\n", info_response[FRIDGE_INF_TERM]);
+              sprintf(str_temp, "Temperatura interna: %s\n", info_response[MSG_FRIDGE_INF_TERM]);
               strcat(buf_w, str_temp);
-              sprintf(str_temp, "Time: %s\n", info_response[FRIDGE_INF_TIME]);
+              sprintf(str_temp, "Time: %s\n", info_response[MSG_FRIDGE_INF_TIME]);
               strcat(buf_w, str_temp);
-              sprintf(str_temp, "Delay: %s\n", info_response[FRIDGE_INF_DELAY]);
+              sprintf(str_temp, "Delay: %s\n", info_response[MSG_FRIDGE_INF_DELAY]);
               strcat(buf_w, str_temp);
-              sprintf(str_temp, "Percentuale di riempimento: %s\n", info_response[FRIDGE_INF_PERC]);
-              strcat(buf_w, str_temp);
-              break;
-            case FRIDGE_GET_TIME:
-              sprintf(str_temp, "Tempo di apertura: %s\n", info_response[FRIDGE_VALORE]);
+              sprintf(str_temp, "Percentuale di riempimento: %s\n", info_response[MSG_FRIDGE_INF_PERC]);
               strcat(buf_w, str_temp);
               break;
-            case FRIDGE_GET_PERC:
-              sprintf(str_temp, "Percentuale di riempimento: %s\n", info_response[FRIDGE_VALORE]);
+            case MSG_FRIDGE_GETTIME:
+              sprintf(str_temp, "Tempo di apertura: %s\n", info_response[MSG_FRIDGE_VALORE]);
               strcat(buf_w, str_temp);
               break;
-            case FRIDGE_GET_TERMOSTATO:
-              sprintf(str_temp, "Temperatura interna: %s\n", info_response[FRIDGE_VALORE]);
+            case MSG_FRIDGE_GETPERC:
+              sprintf(str_temp, "Percentuale di riempimento: %s\n", info_response[MSG_FRIDGE_VALORE]);
               strcat(buf_w, str_temp);
               break;
-            case FRIDGE_GET_DELAY:
-              sprintf(str_temp, "Delay: %s\n", info_response[FRIDGE_VALORE]);
+            case MSG_FRIDGE_GETTERMOSTATO:
+              sprintf(str_temp, "Temperatura interna: %s\n", info_response[MSG_FRIDGE_VALORE]);
               strcat(buf_w, str_temp);
               break;
-            case FRIDGE_GET_STATO:
-              sprintf(str_temp, "Stato: %s\n", info_response[FRIDGE_VALORE]);
+            case MSG_FRIDGE_GETDELAY:
+              sprintf(str_temp, "Delay: %s\n", info_response[MSG_FRIDGE_VALORE]);
+              strcat(buf_w, str_temp);
+              break;
+            case MSG_FRIDGE_GETSTATO:
+              sprintf(str_temp, "Stato: %s\n", info_response[MSG_FRIDGE_VALORE]);
               strcat(buf_w, str_temp);
               break;
             default:
               break;
           }
           write(fd_write, buf_w, strlen(buf_w)+1); //srivo su fifo buf_w
-          richiesta = -1;
           printf("Scrivo su fifo\n");
         }
 
@@ -234,11 +228,11 @@ void fridge(int id, int recupero, char *nome){ //recupero booleano
     unlink(fifo_w);
   }
   else{
-    //inizio loop
-    while((msgrcv(queue, &messaggio_risposta ,sizeof(messaggio_risposta.msg_text), NUOVA_OPERAZIONE, 0)) != -1) {
+    int queue_risposta;
+    while((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), NUOVA_OPERAZIONE, 0)) != -1) {
       char ** msg;
-      protocoll_parser(messaggio_risposta.msg_text, &msg);
-
+      protocoll_parser(messaggio.msg_text, &msg);
+      create_queue(atoi(msg[MSG_ID_MITTENTE]), &queue_risposta);
       if(atoi(msg[MSG_OP]) == MSG_INF && controlla_fridge(msg, frigo.id) && (atoi(msg[MSG_ID_MITTENTE]) != frigo.id)){ //se è una richiesta info
         if(frigo.stato){
           frigo.time = difftime(time(NULL), t_start);
@@ -246,17 +240,44 @@ void fridge(int id, int recupero, char *nome){ //recupero booleano
         send_info_fridge(msg, &frigo);
       }
       else if((atoi(msg[MSG_OP]) == MSG_INF) && (atoi(msg[MSG_ID_MITTENTE]) == frigo.id)){ //se è una richiesta info su se stesso
-        printf("Richiesta info da figlio\n");
+        printf("Richiesta info su se stesso\n");
         if(frigo.stato){
           frigo.time = difftime(time(NULL), t_start);
         }
-        crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_INF);
-        concat_int(&messaggio, -1); // id_padre, in questo nessuno
-        concat_dati(&messaggio, &frigo);
-        printf("Invio il messaggio al figlio\n%s", messaggio.msg_text);
-        send_message(queue, &messaggio, messaggio.msg_text, 5); //priorità da decidere
+        crea_messaggio_base(&risposta, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_INF);
+        concat_int(&risposta, -1); // id_padre, in questo nessuno
+        concat_dati(&risposta, &frigo);
+        send_message(queue, &risposta, risposta.msg_text, MSG_FIFO);
       }
-      else if(atoi(msg[MSG_OP]) == FRIDGE_KILL && controlla_fridge(msg, frigo.id)){
+      else if(atoi(msg[MSG_OP]) == MSG_OVERRIDE && controlla_fridge(msg, frigo.id)){
+        if(frigo.stato){
+          frigo.time = difftime(time(NULL), t_start);
+        }
+        send_info_fridge(msg, &frigo);
+      }
+      else if(atoi(msg[MSG_OP]) == MSG_RIMUOVIFIGLIO && controlla_fridge(msg, frigo.id)){
+        if(frigo.id == atoi(msg[MSG_RIMUOVIFIGLIO_ID])){
+          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), FRIDGE, atoi(msg[MSG_ID_MITTENTE]), frigo.id, MSG_ACKP);
+          send_message(queue_risposta, &risposta, risposta.msg_text, 2);
+          salva_dati(&frigo, t_start, allarme, idf);
+          exit(EXIT_SUCCESS);
+        }
+        else{
+          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), FRIDGE, atoi(msg[MSG_ID_MITTENTE]), frigo.id, MSG_ACKN);
+          send_message(queue_risposta, &risposta, risposta.msg_text, 2);
+        }
+      }
+      else if(atoi(msg[MSG_OP]) == MSG_GET_TERMINAL_TYPE && controlla_fridge(msg, frigo.id)){
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), FRIDGE, atoi(msg[MSG_ID_MITTENTE]), frigo.id, MSG_MYTYPE);
+        concat_int(&risposta, FRIDGE);
+        send_message(queue_risposta, &risposta, risposta.msg_text, 2);
+      }
+      else if(atoi(msg[MSG_OP]) == MSG_SALVA_SPEGNI && controlla_fridge(msg, frigo.id)){
+        salva_dati(&frigo, t_start, allarme, idf);
+        exit(EXIT_SUCCESS);
+      }
+      else if(atoi(msg[MSG_OP]) == MSG_SPEGNI && controlla_fridge(msg, frigo.id)){
+        printf("Spegnimento\n");
         if(allarme > 0){
           kill(allarme, SIGTERM);
         }
@@ -265,86 +286,99 @@ void fridge(int id, int recupero, char *nome){ //recupero booleano
         }
         exit(EXIT_SUCCESS);
       }
-      else if(atoi(msg[MSG_OP]) > 700000 && controlla_fridge(msg, frigo.id)){
-      	int codice = atoi(msg[MSG_OP]);
-      	printf("=>codice2: %d\n", codice);
-      	switch(codice){
-          case FRIDGE_GET_TIME:
-            if(frigo.stato == TRUE){
-              frigo.time = difftime(time(NULL), t_start);
-            }
-            crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_GET_TIME);
-            concat_int(&messaggio, frigo.time);
-            send_message(queue, &messaggio, messaggio.msg_text, 5); //invio la riposta al figlio (fifo)
-            break;
-          case FRIDGE_GET_PERC:
-            crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_GET_PERC);
-            concat_int(&messaggio, frigo.percentuale);
-            send_message(queue, &messaggio, messaggio.msg_text, 5);
-            break;
-          case FRIDGE_GET_TERMOSTATO:
-            crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_GET_TERMOSTATO);
-            concat_int(&messaggio, frigo.termostato);
-            send_message(queue, &messaggio, messaggio.msg_text, 5);
-            break;
-          case FRIDGE_GET_STATO:
-            crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_GET_STATO);
-            concat_int(&messaggio, frigo.stato);
-            send_message(queue, &messaggio, messaggio.msg_text, 5);
-            break;
-          case FRIDGE_GET_DELAY:
-            crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_GET_DELAY);
-            concat_int(&messaggio, frigo.delay);
-            send_message(queue, &messaggio, messaggio.msg_text, 5);
-            break;
-        	case FRIDGE_SET_STATO: // modifica stato
-        	  set_stato(atoi(msg[FRIDGE_VALORE]), &frigo, &t_start, &allarme);
-        	  printf("Stato attuale: %d\n", frigo.stato);
-        	  break;
-        	case FRIDGE_SET_INTERRUTTORE:
-        	  set_interruttore(atoi(msg[FRIDGE_VALORE]), &frigo, &t_start, &allarme);
-        	  printf("Interruttore attuale: %d\n", frigo.interruttore);
-        	  break;
-        	case FRIDGE_SET_TERMOSTATO:
-        	  set_termostato(atoi(msg[FRIDGE_VALORE]), &frigo);
-        	  printf("Termostato attuale: %d\n", frigo.termostato);
-        	  break;
-        	case FRIDGE_SET_DELAY:
-        	  set_delay(atoi(msg[FRIDGE_VALORE]), &frigo);
-        	  printf("Delay attuale: %d\n", frigo.delay);
-        	  break;
-        	case FRIDGE_SET_PERC:
-        	  set_perc(atoi(msg[FRIDGE_VALORE]), &frigo);
-        	  printf("Percentuale attuale: %d\n", frigo.percentuale);
-        	  break;
-        	case MSG_RECUPERO_FRIDGE: // modalità recupero
-            // da sistemare
-            duplicate(&frigo, t_start);
-        	  crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo.id, frigo.id, FRIDGE_KILL);
-            send_message(queue, &messaggio, messaggio.msg_text, NUOVA_OPERAZIONE);
-        	  break;
-        	default:
-        	  printf("Errore codice istruzione!\n");
-        	  break;
+      else if(atoi(msg[MSG_OP]) == MSG_FRIDGE_GETTIME && controlla_fridge(msg, frigo.id)){
+
+        if(frigo.stato == TRUE){
+          frigo.time = difftime(time(NULL), t_start);
+        }
+        crea_messaggio_base(&risposta, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_GETTIME);
+        concat_int(&risposta, frigo.time);
+        send_message(queue_risposta, &risposta, risposta.msg_text, MSG_FIFO); //invio la riposta al figlio (fifo)
+      }
+      else if(atoi(msg[MSG_OP]) == MSG_FRIDGE_GETPERC && controlla_fridge(msg, frigo.id)){
+        crea_messaggio_base(&risposta, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_GETPERC);
+        concat_int(&risposta, frigo.percentuale);
+        send_message(queue_risposta, &risposta, risposta.msg_text, MSG_FIFO);
+      }
+      else if(atoi(msg[MSG_OP]) == MSG_FRIDGE_GETTERMOSTATO && controlla_fridge(msg, frigo.id)){
+        crea_messaggio_base(&risposta, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_GETTERMOSTATO);
+        concat_int(&risposta, frigo.termostato);
+        send_message(queue_risposta, &risposta, risposta.msg_text, MSG_FIFO);
+      }
+      else if(atoi(msg[MSG_OP]) == MSG_FRIDGE_GETSTATO && controlla_fridge(msg, frigo.id)){
+        crea_messaggio_base(&risposta, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_GETSTATO);
+        concat_int(&risposta, frigo.stato);
+        send_message(queue_risposta, &risposta, risposta.msg_text, MSG_FIFO);
+      }
+      else if(atoi(msg[MSG_OP]) == MSG_FRIDGE_GETDELAY && controlla_fridge(msg, frigo.id)){
+        crea_messaggio_base(&risposta, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_FRIDGE_GETDELAY);
+        concat_int(&risposta, frigo.delay);
+        send_message(queue_risposta, &risposta, risposta.msg_text, MSG_FIFO);
+      }
+      else if(atoi(msg[MSG_OP]) == MSG_FRIDGE_SETSTATO && controlla_fridge(msg, frigo.id)){
+        set_stato(atoi(msg[MSG_FRIDGE_VALORE]), &frigo, &t_start, &allarme);
+        printf("Stato attuale: %d\n", frigo.stato);
+      }
+      else if(atoi(msg[MSG_OP]) == MSG_FRIDGE_SETINTERRUTTORE && controlla_fridge(msg, frigo.id)){
+        set_interruttore(atoi(msg[MSG_FRIDGE_VALORE]), &frigo, &t_start, &allarme);
+        printf("Interruttore attuale: %d\n", frigo.interruttore);
+      }
+      else if(atoi(msg[MSG_OP]) == MSG_FRIDGE_SETTERMOSTATO && controlla_fridge(msg, frigo.id)){
+        set_termostato(atoi(msg[MSG_FRIDGE_VALORE]), &frigo);
+        printf("Termostato attuale: %d\n", frigo.termostato);
+      }
+      else if(atoi(msg[MSG_OP]) == MSG_FRIDGE_SETDELAY && controlla_fridge(msg, frigo.id)){
+        set_delay(atoi(msg[MSG_FRIDGE_VALORE]), &frigo);
+        printf("Delay attuale: %d\n", frigo.delay);
+      }
+      else if(atoi(msg[MSG_OP]) == MSG_FRIDGE_SETPERC && controlla_fridge(msg, frigo.id)){
+        set_perc(atoi(msg[MSG_FRIDGE_VALORE]), &frigo);
+        printf("Percentuale attuale: %d\n", frigo.percentuale);
+      }
+      else{
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), FRIDGE, atoi(msg[MSG_ID_MITTENTE]), frigo.id, MSG_ACKN);
+        if(atoi(msg[MSG_ID_MITTENTE]) == id){
+          send_message(queue_risposta, &risposta, risposta.msg_text, NUOVA_OPERAZIONE);
+        }
+        else{
+          send_message(queue_risposta, &risposta, risposta.msg_text, 2);
         }
       }
     }
   }
 }
 
+int equal_fridge(msgbuf *msg1, msgbuf *msg2){
+  printf("Frigo: confronto in corso\n");
+  int rt = FALSE;
+  char **buf1, **buf2;
+  protocoll_parser(msg1->msg_text, &buf1);
+  protocoll_parser(msg2->msg_text, &buf2);
+  if((strcmp(buf1[MSG_FRIDGE_INF_STATO], buf2[MSG_FRIDGE_INF_STATO]) == 0) && (strcmp(buf1[MSG_FRIDGE_INF_INTERRUTTORE], buf2[MSG_FRIDGE_INF_INTERRUTTORE]) == 0)
+  && (strcmp(buf1[MSG_FRIDGE_INF_TERM], buf2[MSG_FRIDGE_INF_TERM]) == 0) && (strcmp(buf1[MSG_FRIDGE_INF_TIME], buf2[MSG_FRIDGE_INF_TIME]) == 0)
+  && (strcmp(buf1[MSG_FRIDGE_INF_DELAY], buf2[MSG_FRIDGE_INF_DELAY]) == 0) && (strcmp(buf1[MSG_FRIDGE_INF_PERC], buf2[MSG_FRIDGE_INF_PERC]) == 0)
+  && (strcmp(buf1[MSG_FRIDGE_INF_NOME], buf2[MSG_FRIDGE_INF_NOME]) == 0)){
+    printf("Frigo: Messaggi uguali\n");
+    rt = TRUE;
+  }
+  else{
+    printf("Frigo: Messaggi diversi\n");
+  }
+
+  return rt;
+}
 
 void send_info_fridge(char **msg, t_frigo *frigo){ //invia info
   printf("Send info\n");
   int queue;
   msgbuf messaggio;
   crea_messaggio_base(&messaggio, atoi(msg[MSG_TYPE_MITTENTE]), FRIDGE, atoi(msg[MSG_ID_MITTENTE]), frigo->id, MSG_INF_FRIDGE);
-  concat_string(&messaggio, msg[MSG_INF_IDPADRE]);
+  concat_string(&messaggio, msg[MSG_ID_MITTENTE]); //concat id padre
   concat_dati(&messaggio, frigo); //concateno i dati del frigo
   create_queue(atoi(msg[MSG_ID_MITTENTE]), &queue); //stabilisco una coda col padre
   send_message(queue, &messaggio, messaggio.msg_text, 2);
   printf("End send\n");
 }
-
 
 void apri_frigo(t_frigo *frigo, time_t *t_start, int *allarme, int delay_recupero){
   frigo->stato = TRUE;
@@ -364,7 +398,7 @@ void apri_frigo(t_frigo *frigo, time_t *t_start, int *allarme, int delay_recuper
     int queue;
     msgbuf messaggio;
     create_queue(frigo->id, &queue);
-    crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo->id, frigo->id, FRIDGE_SET_STATO); //invio un messaggio a se stesso...
+    crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo->id, frigo->id, MSG_FRIDGE_SETSTATO); //invio un messaggio a se stesso...
     concat_int(&messaggio, FALSE); //...con stato FALSE
     send_message(queue, &messaggio, messaggio.msg_text, NUOVA_OPERAZIONE);
     exit(0); //termino allarme
@@ -445,7 +479,7 @@ void set_perc(int valore, t_frigo *frigo){
   }
 }
 
-void duplicate(t_frigo *frigo, time_t t_start){
+void salva_dati(t_frigo *frigo, time_t t_start, int allarme, int idf){
   printf("---------Duplicate--------\n");
   int queue;
   msgbuf messaggio;
@@ -460,8 +494,14 @@ void duplicate(t_frigo *frigo, time_t t_start){
   create_queue(frigo->id, &queue); //invio il messaggio al nuovo frigo duplicato che avrà lo stesso id di questo
   send_message(queue, &messaggio, messaggio.msg_text, 10);
   printf("-------Fine---------\n");
-}
 
+  if(allarme > 0){ //elimino eventuali figli
+    kill(allarme, SIGTERM);
+  }
+  if(idf > 0){
+    kill(idf, SIGTERM);
+  }
+}
 
 void concat_dati(msgbuf *messaggio, t_frigo *frigo){ //concateno dati da inviar
   concat_int(messaggio, frigo->stato);
