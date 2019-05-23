@@ -58,44 +58,47 @@ int main(){
   while(flag){
     printf("------------scrittura----------\n");
     fgets(buf_w, BUF_SIZE, stdin);
-    n_arg = str_split(buf_w, &cmd);
+    if(buf_w[0] != '\n'){ // risolve il problema di segmentation fault quando vado a capo non scrivendo nulla
+      n_arg = str_split(buf_w, &cmd);
 
-    if(strcmp(cmd[0], "exit") == 0){
-      printf("Fine scrittura\n");
-      flag = 0;
-    }
-    else if((n_arg > 1) && (check_cmd(cmd, n_arg) || (strcmp(cmd[1], "chiuditi") == 0))){ //se il comando è corretto o è chiuditi
-      if((n_arg >= 2)){ //se abbiamo almeno 2 parametri apro fifo di scrittura e scrivo
-        sprintf(fifo_w, "/tmp/D_%s_R", cmd[0]);
-        printf("%s\n", fifo_w);
-        fd = open(fifo_w, O_WRONLY);
-        write(fd, buf_w, strlen(buf_w)+1);
-        printf("buf_w: %s\n", buf_w);
-        close(fd);
-      }
-
-      if((n_arg == 3) && (strcmp(cmd[1], "get") == 0)){ //se è una richiesta get apro anche quello di lettura
-        printf("risposta get\n");
-        sprintf(fifo_r, "/tmp/D_%s_W", cmd[0]);
-        printf("%s\n", fifo_r);
-        fd = open(fifo_r, O_RDONLY);
-        printf("lettura risposta\n");
-        read(fd, buf_r, BUF_SIZE);
-        printf("%s\n", buf_r);
-        close(fd);
-        printf("fifo lettura chiusa\n");
-      }
-    }
-    else{
-      printf("Comando non valido!\n");
-      printf("Desideri uscire? [s/n]\n");
-      fgets(buf_w, BUF_SIZE, stdin);
-      //printf("Risposta: %s\n",buf_w );
-      if (strcmp(buf_w, "s\n") == 0) {
-        printf("Scrittura finita\n");
+      if(strcmp(cmd[0], "exit") == 0){
+        printf("Fine scrittura\n");
         flag = 0;
       }
+      else if((n_arg > 1) && (check_cmd(cmd, n_arg) || (strcmp(cmd[1], "chiuditi") == 0))){ //se il comando è corretto o è chiuditi
+        if((n_arg >= 2)){ //se abbiamo almeno 2 parametri apro fifo di scrittura e scrivo
+          sprintf(fifo_w, "/tmp/D_%s_R", cmd[0]);
+          printf("%s\n", fifo_w);
+          fd = open(fifo_w, O_WRONLY);
+          write(fd, buf_w, strlen(buf_w)+1);
+          printf("buf_w: %s\n", buf_w);
+          close(fd);
+        }
+
+        if((n_arg == 3) && (strcmp(cmd[1], "get") == 0)){ //se è una richiesta get apro anche quello di lettura
+          printf("risposta get\n");
+          sprintf(fifo_r, "/tmp/D_%s_W", cmd[0]);
+          printf("%s\n", fifo_r);
+          fd = open(fifo_r, O_RDONLY);
+          printf("lettura risposta\n");
+          read(fd, buf_r, BUF_SIZE);
+          printf("%s\n", buf_r);
+          close(fd);
+          printf("fifo lettura chiusa\n");
+        }
+      }
+      else{
+        printf("Comando non valido!\n");
+        printf("Desideri uscire? [s/n]\n");
+        fgets(buf_w, BUF_SIZE, stdin);
+        //printf("Risposta: %s\n",buf_w );
+        if (strcmp(buf_w, "s\n") == 0) {
+          printf("Scrittura finita\n");
+          flag = 0;
+        }
+      }
     }
+
   }
 
   return 0;
