@@ -221,10 +221,6 @@ void fridge(int id, int recupero, char *nome){ //recupero booleano
         }
 
       }
-      else if(strcmp(cmd[1], "close") == 0){ //se il secondo parametro è close
-        printf("Chiusura comunicazione\n");
-        flag = FALSE; //esco dal ciclo
-      }
       else{
         printf("Comando non valido\n");
       }
@@ -250,11 +246,11 @@ void fridge(int id, int recupero, char *nome){ //recupero booleano
           frigo.time = difftime(time(NULL), t_start);
         }
 
-        if(atoi(msg[MSG_ID_MITTENTE]) != frigo.id){ // se è arrivata dagli altri
+        if(atoi(msg[MSG_ID_MITTENTE]) != frigo.id){ // se la richiesta è arrivata dagli altri
           printf("Rchiesta info dagli altri\n");
           send_info_fridge(msg, &frigo);
         }
-        else{ // se è arrivata dal figlio fifo
+        else{ // se la richiesta è arrivata dal figlio fifo
           printf("Richiesta da se stesso\n");
           crea_messaggio_base(&risposta, FRIDGE, FRIDGE, frigo.id, frigo.id, MSG_INF);
           concat_int(&risposta, -1); // id_padre, in questo nessuno
