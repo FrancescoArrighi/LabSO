@@ -2,10 +2,10 @@
 #include "bulb.h"
 
 /*Operazioni di una Bulb
-MSG_BULB_SWITCH_S = 410001
-MSG_BULB_SWITCH_I = 410002
-MSG_BULB_GETTIME  = 410003
-MSG_BULB_GETINFO  = 410004
+MSG_BULB_SWITCH_S = 510001
+MSG_BULB_SWITCH_I = 510002
+MSG_BULB_GETTIME  = 510003
+MSG_BULB_GETINFO  = 510004
 */
 
 /* Funzione Bulb */
@@ -112,7 +112,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
           //concateno i dati ricevuti
           if (richiesta == MSG_INF) {
             sprintf(str_temp, "\nNome: %s\n", info_response[BULB_INF_NOME]);
-            strcat(buf_w, str_temp);
+            strcpy(buf_w, str_temp);
             sprintf(str_temp, "Id: %s\n", info_response[MSG_ID_MITTENTE]);
             strcat(buf_w, str_temp);
             sprintf(str_temp, "Stato: %s\n", info_response[BULB_INF_STATO]);
@@ -184,8 +184,11 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
       }
 
       else if(codice_messaggio(msg) == MSG_SALVA_SPEGNI && controllo_bulb(msg, id)){
-        concat_dati_bulb(&messaggio, status, interruttore, t_start);
-        send_message(queue, &messaggio, messaggio.msg_text, 10);
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_BULB);
+        concat_int(&risposta, BULB);
+        concat_int(&risposta, id);
+        concat_dati_bulb(&risposta, status, interruttore, t_start);
+        send_message(queue, &risposta, messaggio.msg_text, 10);
         //printf("Lampadina pronta per essere eliminata\n");
         exit(EXIT_SUCCESS);
       }
@@ -198,8 +201,11 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
       }
 
       else if(codice_messaggio(msg) == MSG_RIMUOVIFIGLIO && controllo_bulb(msg, id)){
-        concat_dati_bulb(&messaggio, status, interruttore, t_start);
-        send_message(queue, &messaggio, messaggio.msg_text, 10);
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_BULB);
+        concat_int(&risposta, BULB);
+        concat_int(&risposta, id);
+        concat_dati_bulb(&risposta, status, interruttore, t_start);
+        send_message(queue, &risposta, messaggio.msg_text, 10);
         //printf("Lampadina pronta per essere eliminata\n");
         exit(EXIT_SUCCESS);
       }
@@ -333,4 +339,30 @@ int equal_bulb(msgbuf * msg1, msgbuf * msg2){
   }
 
   return rt;
+}
+//msgctl( queue, IPC_RMID, 0); - Serve a svuotare la queue
+
+int leggi_info_bulb(msgbuf * m) {
+  int r = FALSE;
+  char ** ris;
+  char tmp[80];
+  char stampa[BUF_SIZE];
+  protocoll_parser(m->msg_text, &ris);
+
+  if ((codice_messaggio(ris) == MSG_INF_BULB) && ((atoi(ris[MSG_TYPE_MITTENTE]) == BULB) || (atoi(ris[MSG_TYPE_MITTENTE]) == DEFAULT))) {
+    sprintf(tmp, "\nNome: %s\n", ris[BULB_INF_NOME]);
+    strcpy(stampa, tmp);
+    sprintf(tmp, "Id: %s\n", ris[MSG_ID_MITTENTE]);
+    strcat(stampa, tmp);
+    sprintf(tmp, "Stato: %s\n", ris[BULB_INF_STATO]);
+    strcat(stampa, tmp);
+    sprintf(tmp, "Interruttore: %s\n", ris[BULB_INF_INTERRUTTORE]);
+    strcat(stampa, tmp);
+    sprintf(tmp, "Tempo di utilizzo: %s\n", ris[BULB_INF_TIME]);
+    strcat(stampa, tmp);
+
+    r = TRUE;
+    printf("Ecco le info: %s\n", stampa);
+  }
+  return r;
 }

@@ -7,10 +7,10 @@
 #define WINDOW_H
 
 //Operazioni di una Window
-#define MSG_WINDOW_OPEN 510001
-#define MSG_WINDOW_CLOSE 510002
-#define MSG_WINDOW_GETTIME 510003
-#define MSG_WINDOW_GETINFO 510004
+#define MSG_WINDOW_OPEN 610001
+#define MSG_WINDOW_CLOSE 610002
+#define MSG_WINDOW_GETTIME 610003
+#define MSG_WINDOW_GETINFO 610004
 
 //Campi per Info
 #define WINDOW_INF_NOME 6
@@ -18,8 +18,8 @@
 #define WINDOW_INF_TIME 8
 
 //Campo per Ripristino
-#define WINDOW_REC_STATO 5
-#define WINDOW_REC_TSTART 6
+#define WINDOW_REC_STATO 7
+#define WINDOW_REC_TSTART 8
 
 //Campo GetTime
 #define WINDOW_TIME 5
