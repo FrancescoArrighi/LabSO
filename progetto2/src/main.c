@@ -25,11 +25,13 @@ void del(char ** cmd, int n, int_list * figli, int queue ,int deposito){
       id_dispositivo = atoi(cmd[1]);
       crea_messaggio_base(&messaggio, DEPOSITO, CONTROLLER, DEPOSITO, CONTROLLER, MSG_RIMUOVIFIGLIO);
       concat_int(&messaggio, id_dispositivo);
+      concat_int(&messaggio, MSG_RIMUOVIFIGLIO_SPEC_DEL);
       messaggio.msg_type = NUOVA_OPERAZIONE;
       msgsnd(deposito, &messaggio, sizeof(messaggio.msg_text), 0);
 
       crea_messaggio_base(&messaggio, DEFAULT, CONTROLLER, DEFAULT, CONTROLLER, MSG_RIMUOVIFIGLIO);
       concat_int(&messaggio, id_dispositivo);
+      concat_int(&messaggio, MSG_RIMUOVIFIGLIO_SPEC_DEL);
       messaggio.msg_type = NUOVA_OPERAZIONE;
       invia_broadcast(&messaggio, figli);
 
@@ -58,11 +60,6 @@ void del(char ** cmd, int n, int_list * figli, int queue ,int deposito){
         }
       }
 
-      crea_messaggio_base(&messaggio, DEPOSITO, CONTROLLER, DEPOSITO, CONTROLLER, MSG_DEPOSITO_DEL);
-      concat_int(&messaggio, id_dispositivo);
-      messaggio.msg_type = NUOVA_OPERAZIONE;
-      msgsnd(deposito, &messaggio, sizeof(messaggio.msg_text), 0);
-
     }
     if(flag == FALSE){
       printf("\nErrore campi: del \"<id dispositivo>\"\n <id dispositivo>: se non si conosce l'id del dispositivo usare il comando info\n");
@@ -74,9 +71,7 @@ void lik(char ** cmd, int n, int_list * figli, int queue, int deposito){
   int flag = FALSE;
   //printf("\n1\n");
   if(n == 4){
-    rimuovi_maiuscole(cmd[1]);
     rimuovi_maiuscole(cmd[2]);
-    rimuovi_maiuscole(cmd[3]);
     if(strcmp("to", cmd[2]) == 0){
       flag = TRUE;
 
@@ -84,12 +79,14 @@ void lik(char ** cmd, int n, int_list * figli, int queue, int deposito){
       int id_d2 = atoi(cmd[3]);
       crea_messaggio_base(&messaggio, DEPOSITO, CONTROLLER, DEPOSITO, CONTROLLER, MSG_RIMUOVIFIGLIO);
       concat_int(&messaggio, id_d1);
+      concat_int(&messaggio, MSG_RIMUOVIFIGLIO_SPEC_DEP);
       messaggio.msg_type = NUOVA_OPERAZIONE;
       msgsnd(deposito, &messaggio, sizeof(messaggio.msg_text), 0);
       //printf("\n3.6\n");
 
       crea_messaggio_base(&messaggio, DEFAULT, CONTROLLER, DEFAULT, CONTROLLER, MSG_RIMUOVIFIGLIO);
       concat_int(&messaggio, id_d1);
+      concat_int(&messaggio, MSG_RIMUOVIFIGLIO_SPEC_DEP);
       messaggio.msg_type = NUOVA_OPERAZIONE;
       invia_broadcast(&messaggio, figli);
 
@@ -209,7 +206,7 @@ void info(char ** cmd, int n, int queue, int deposito, int_list * figli){
   invia_broadcast(&newmsg, figli);
   int flag = TRUE;
   int i;
-  printf("info:\n");
+  printf("controller info:\n");
   for(i = figli->n + 1; i > 0 && flag; i--){
     if(leggi(queue, &risposta_figli, 2, 2)){
       int dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
@@ -237,10 +234,12 @@ void controller(int myid, int id_deposito){
     int my_queue, queue_deposito;
     crea_queue(myid, &my_queue);
     crea_queue(id_deposito, &queue_deposito);
+    printf("controller - %d - pid = %d - %d\n", myid,getpid(), my_queue);
 
     int flag = TRUE;
     printf("\n>");
     while (flag && getline(&str, &dim_str, stdin) >= 0) {
+        svuota_msg_queue(my_queue, 2);
         n = str_split(str, &cmd);
         if(n > 0){
           if(strcmp(cmd[0], "list") == 0){

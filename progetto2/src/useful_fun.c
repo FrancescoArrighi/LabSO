@@ -238,9 +238,6 @@ int controlla_validita(char ** str, int id){
 
 int codice_messaggio(char ** msg){
   int rt = atoi(msg[MSG_OP]);
-  if((rt) >= 10000){
-    rt += atoi(msg[MSG_TYPE_DESTINATARIO]) * 100000;
-  }
   return rt;
 }
 
@@ -263,7 +260,7 @@ void crea_messaggio_base(msgbuf * messaggio, int type_dest, int type_mit, int id
   concat_int(messaggio, type_mit);
   concat_int(messaggio, id_dest);
   concat_int(messaggio, id_mit);
-  concat_int(messaggio, codice_op % 100000); // rimuovo il valore "tipo dispositivo" nel caso presente NB: il tipo mittente è passato come parametro separato
+  concat_int(messaggio, codice_op);
 }
 
 void ricomponi_messaggio(char ** cmd, int n, msgbuf * messaggio){ // ricomponi_messaggio(cmd, &str);
@@ -289,7 +286,6 @@ void invia_broadcast(msgbuf * messaggio, int_list * queue){
   for(i = 0; get_int(i, &next, queue); i++){
     //printf("\n broadcast invio %d-esimo: |%d| - |%ld|\n", i, next, messaggio->msg_type);
     msgsnd(next, messaggio, sizeof(messaggio->msg_text), 0);
-    perror("broadcast - msg");
   }
   //printf("\n fine broadcast\n");
 }
@@ -302,7 +298,7 @@ void recupero_in_cascata(int queue){
      printf("errore lettura ripristino\n");
   }
   else{
-    //printf("tasso2\n");
+    printf("recupero\n");
     protocoll_parser(messaggio.msg_text, &msg);
     //printf("tasso3\n");
     int type = atoi(msg[MSG_RECUPERO_TYPE]);
@@ -343,6 +339,7 @@ void recupero_in_cascata(int queue){
     }
     //printf("tasso7\n");
   }
+  printf("fine recupero\n");
 }
 
 int leggi(int queue, msgbuf * messaggio, int p, float t){

@@ -96,6 +96,10 @@
 
 #define MSG_RIMUOVIFIGLIO 15
 #define MSG_RIMUOVIFIGLIO_ID 5
+#define MSG_RIMUOVIFIGLIO_SPEC 6
+#define MSG_RIMUOVIFIGLIO_SPEC_DEP 2    //salva lo stato e lo aggiunge al deposito
+#define MSG_RIMUOVIFIGLIO_SPEC_SALVA 1  //salva lo stato ma non lo aggiunge al deposito
+#define MSG_RIMUOVIFIGLIO_SPEC_DEL 0
 
 #define MSG_ADD_DEVICE 210013
 #define MSG_ADD_DEVICE_TYPE 5

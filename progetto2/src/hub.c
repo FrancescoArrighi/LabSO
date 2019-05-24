@@ -1,18 +1,18 @@
 #include "hub.h"
 
 int override(int_list * queues, int type, int myid, int myqueue, msgbuf * msg_example){
-  msgbuf messaggio;
+  msgbuf messaggio, risposta;
   int rt = FALSE;
-  messaggio.msg_type = NUOVA_OPERAZIONE;
   crea_messaggio_base(&messaggio, DEFAULT, HUB, DEFAULT, myid, MSG_OVERRIDE);
+  messaggio.msg_type = NUOVA_OPERAZIONE;
   invia_broadcast(&messaggio, queues);
   int first_message = TRUE;
   int i, next, codice_msg;
   char ** msg;
   for(i = queues->n; i > 0; i--){
-    if(leggi(myqueue, &messaggio, 2, 2)){
+    if(leggi(myqueue, &risposta, 2, 2)){
       //printf("hub - %d - pid = %d - riga: %d\n------------------\n%s\n------------------\n", myid,getpid(), 14,messaggio.msg_text);
-      protocoll_parser(messaggio.msg_text, &msg);
+      protocoll_parser(risposta.msg_text, &msg);
       codice_msg = codice_messaggio(msg);
       if(codice_msg == MSG_ACKP){
         rt  = TRUE;
@@ -20,36 +20,43 @@ int override(int_list * queues, int type, int myid, int myqueue, msgbuf * msg_ex
       else{
         if(type == BULB && codice_msg == MSG_INF_BULB){
           if(first_message){
-            strcpy(msg_example->msg_text, messaggio.msg_text);
-            msg_example->msg_type = messaggio.msg_type;
+            strcpy(msg_example->msg_text, risposta.msg_text);
+            msg_example->msg_type = risposta.msg_type;
             first_message = FALSE;
           }
           else{
-            if(equal_bulb(*msg_example, messaggio) == FALSE){
+            if(equal_bulb(*msg_example, risposta) == FALSE){
               rt = TRUE;
             }
           }
         }
         else if(type == WINDOW && codice_msg == MSG_INF_WINDOW){
           if(first_message){
-            strcpy(msg_example->msg_text, messaggio.msg_text);
-            msg_example->msg_type = messaggio.msg_type;
+            strcpy(msg_example->msg_text, risposta.msg_text);
+            msg_example->msg_type = risposta.msg_type;
             first_message = FALSE;
           }
           else{
-            if(equal_window(*msg_example, messaggio)  == FALSE){
-              rt = TRUE;
+            if(first_message){
+              strcpy(msg_example->msg_text, risposta.msg_text);
+              msg_example->msg_type = risposta.msg_type;
+              first_message = FALSE;
+            }
+            else{
+              if(equal_window(*msg_example, risposta)  == FALSE){
+                rt = TRUE;
+              }
             }
           }
         }
         else if(type == FRIDGE && codice_msg == MSG_INF_FRIDGE){
           if(first_message){
-            strcpy(msg_example->msg_text, messaggio.msg_text);
-            msg_example->msg_type = messaggio.msg_type;
+            strcpy(msg_example->msg_text, risposta.msg_text);
+            msg_example->msg_type = risposta.msg_type;
             first_message = FALSE;
           }
           else{
-            if(equal_fridge(*msg_example, messaggio) == FALSE){
+            if(equal_fridge(*msg_example, risposta) == FALSE){
               rt = TRUE;
             }
           }
@@ -66,16 +73,14 @@ int override(int_list * queues, int type, int myid, int myqueue, msgbuf * msg_ex
 void hub(int id, int recupero, char * nome){
   int_list * figli = (int_list *) create_int_list();
 
-  printf("!! hub - %d - pid = %d\n", id,getpid());
-
   int queue;
   msgbuf messaggio;
 
   crea_queue(id, &queue);
+  printf("hub - %d - pid = %d - %d\n", id,getpid(), queue);
 
   if(recupero){
     msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 10, 0);
-    printf("hub - %d - pid = %d - riga: %d\n------------------\n%s\n------------------\n", id,getpid(), 78,messaggio.msg_text);
 
     char ** msg;
     int n = protocoll_parser(messaggio.msg_text, &msg);
@@ -96,7 +101,14 @@ void hub(int id, int recupero, char * nome){
   int id_dest;
   int mesg_non_supp;
   while ( TRUE) {
+    if(id == 386){
+      printf("come nuovo\n");
+    }
     msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), NUOVA_OPERAZIONE, 0);
+    if(id == 386){
+      printf("/*\n%s\n/*\n", messaggio.msg_text);
+    }
+    svuota_msg_queue(queue, 2);
     //printf("hub - %d - pid = %d - riga: %d\n------------------\n%s\n------------------\n", id,getpid(), 100,messaggio.msg_text);
 
     int type_child = DEFAULT;
@@ -119,12 +131,21 @@ void hub(int id, int recupero, char * nome){
 
         //controllo override
         msgbuf msg_example;
-        concat_int(&risposta, override(figli, type_child,id,queue,&msg_example));
-
+        if(id == 386){
+          printf("inizio overflow\n");
+        }
+        //concat_int(&risposta, override(figli, type_child,id,queue,&msg_example));
+        concat_int(&risposta, 0);
+        if(id == 386){
+          printf("fine\n");
+        }
         //invio la risposta
         int msg_queue_mit;
         crea_queue(atoi(msg[MSG_ID_MITTENTE]), &msg_queue_mit);
         msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
+        if(id == 386){
+          printf("myinfo/*\n%s\n/*\n", risposta.msg_text);
+        }
         //creo la richiesta di info per i figli
         msgbuf richiesta_figli;
         crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_INF);
@@ -151,6 +172,7 @@ void hub(int id, int recupero, char * nome){
           }
           else{
             flag = FALSE;
+            printf("timeout deposito risposte figli info - %d - pid = %d\n", id,getpid() );
           }
         }
       }
@@ -279,13 +301,19 @@ void hub(int id, int recupero, char * nome){
         msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
         flag_rimuovi = TRUE;
 
-        msgbuf msg_deposito;
-        msg_deposito.msg_type = NUOVA_OPERAZIONE;
-        crea_messaggio_base(&msg_deposito, DEPOSITO, HUB, DEPOSITO, id, MSG_AGGIUNGI);
-        concat_int(&msg_deposito, id);
-        int q_dep;
-        crea_queue(DEPOSITO, &q_dep);
-        msgsnd(q_dep, &msg_deposito, sizeof(msg_deposito.msg_text), 0);
+        if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEP){
+          msgbuf msg_deposito;
+          msg_deposito.msg_type = NUOVA_OPERAZIONE;
+          crea_messaggio_base(&msg_deposito, DEPOSITO, HUB, DEPOSITO, id, MSG_AGGIUNGI);
+          concat_int(&msg_deposito, id);
+          int q_dep;
+          crea_queue(DEPOSITO, &q_dep);
+          printf("id rimuovi salva: %s\n", msg[MSG_ID_MITTENTE]);
+          msgsnd(q_dep, &msg_deposito, sizeof(msg_deposito.msg_text), 0);
+        }
+        else{
+          printf("id NON salva: %s\n", msg[MSG_ID_MITTENTE]);
+        }
       }
       else{
 
@@ -298,6 +326,7 @@ void hub(int id, int recupero, char * nome){
 
         crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_RIMUOVIFIGLIO);
         concat_string(&richiesta_figli, msg[MSG_RIMUOVIFIGLIO_ID]);
+        concat_string(&richiesta_figli, msg[MSG_RIMUOVIFIGLIO_SPEC]);
         richiesta_figli.msg_type = NUOVA_OPERAZIONE;
         invia_broadcast(&richiesta_figli, figli);
 
@@ -333,7 +362,7 @@ void hub(int id, int recupero, char * nome){
         int q_nf;
         crea_queue(atoi(msg[MSG_AGGIUNGI_IDF]), &q_nf);
 
-        msgbuf richiesta_figlio, risposta_figlio, risposta;
+        msgbuf richiesta_figlio, risposta_figlio, risposta, richiesta_dep, risposta_deb;
         char ** msg_risp_f;
 
         crea_messaggio_base(&richiesta_figlio, DEFAULT, HUB, DEFAULT, id, MSG_GET_TERMINAL_TYPE);
@@ -359,13 +388,21 @@ void hub(int id, int recupero, char * nome){
           type_child = type_new_c;
           insert_int(q_nf, 0, figli);
 
+          int q_dep;
+          crea_queue(DEPOSITO, &q_dep);
+          crea_messaggio_base(&richiesta_dep, DEPOSITO, HUB, DEPOSITO, id, MSG_DEPOSITO_DEL);
+          concat_string(&richiesta_dep, msg[MSG_AGGIUNGI_IDF]);
+          richiesta_dep.msg_type = NUOVA_OPERAZIONE;
+          msgsnd(q_dep, &richiesta_dep, sizeof(richiesta_dep.msg_text), 0);
+
           crea_messaggio_base(&richiesta_figlio, DEFAULT, HUB, DEFAULT, id, MSG_SALVA_SPEGNI);
           richiesta_figlio.msg_type = NUOVA_OPERAZIONE;
           msgsnd(q_nf, &richiesta_figlio, sizeof(richiesta_figlio.msg_text), 0);
 
           recupero_in_cascata(q_nf);
 
-          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+          crea_messaggio_base(&risposta, DEPOSITO, HUB, DEPOSITO, id, MSG_ACKP);
+
         }
         else{
           crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
@@ -418,6 +455,7 @@ void hub(int id, int recupero, char * nome){
           msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
         }
       }
+      printf("stato iniziale %d\n", id );
     }
     else if(codice_messaggio(msg) == MSG_GET_TERMINAL_TYPE ){
       if(id_dest == DEFAULT || id_dest == id){
@@ -487,7 +525,8 @@ void hub(int id, int recupero, char * nome){
         msgbuf richiesta_figli;
 
         //creo il messaggio di ripristino
-        if(MSG_SALVA_SPEGNI || flag_rimuovi){
+        if( codice_messaggio(msg) == MSG_SALVA_SPEGNI || ( codice_messaggio(msg) == MSG_RIMUOVIFIGLIO && (atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_SALVA || atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEP ) ) ) {
+          printf ("====> %d\n",codice_messaggio(msg));
           crea_messaggio_base(&msg_salva, HUB, HUB, id, id, MSG_RECUPERO_HUB);
           concat_int(&msg_salva, HUB);
           concat_int(&msg_salva, id);
@@ -534,8 +573,8 @@ void hub(int id, int recupero, char * nome){
       int temp_n = protocoll_parser(richiesta_figli.msg_text, &msg_ric_f);
       strcpy(msg_ric_f[MSG_TYPE_DESTINATARIO], msg[MSG_TYPE_DESTINATARIO]);
       strcpy(msg_ric_f[MSG_ID_DESTINATARIO], msg[MSG_ID_DESTINATARIO]);
-      itoa(DEPOSITO, &msg_ric_f[MSG_TYPE_MITTENTE]);
-      itoa(DEPOSITO, &msg_ric_f[MSG_ID_MITTENTE]);
+      itoa(HUB, &msg_ric_f[MSG_TYPE_MITTENTE]);
+      itoa(HUB, &msg_ric_f[MSG_ID_MITTENTE]);
       ricomponi_messaggio(msg_ric_f, temp_n, &richiesta_figli);
 
       richiesta_figli.msg_type = NUOVA_OPERAZIONE;
