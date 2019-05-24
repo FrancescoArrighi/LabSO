@@ -13,7 +13,7 @@
 #### Timer:
 
 ### Dispositivi di interazione
-Ognuno dei dispositivi terminali crea una `messagequeue` che gli permette di comunicare con i dispositivi di controllo e un sottoprocesso che gli permette di comunicare con l'umano.
+Ognuno dei dispositivi terminali crea una `messagequeue` che gli permette di comunicare con i dispositivi di controllo e un sottoprocesso che gli permette di comunicare con l'umano. 
 
 #### Bulb:
 La nostra lampadina può essere accesa o spenta e ha un singolo interruttore di comando per il cambio di stato.
@@ -39,25 +39,25 @@ L'umano può interagire con la lampadina nei seguenti modi:
 - `get time`: Chiede il tempo di utilizzo alla finestra e viene stampato.
 
 #### Fridge:
-Il nostro frigerifero può essere aperto o chiuso con un singolo pulsante. Si richiude automaticamente dopo un tempo che può essere variato. Una “percentuale di riempimento” indica quanto contenuto c’è all’interno (0%-100%): è possibile togliere o aggiungere contenuto solo “manualmente”. Un termostato/termometro permette di gestire e impostare la temperatura interna.
+Il nostro frigerifero può essere aperto o chiuso con un singolo pulsante. Si richiude automaticamente dopo un tempo che può essere variato. Una “percentuale di riempimento” indica quanto contenuto c’è all’interno (0%-100%): è possibile togliere o aggiungere contenuto solo “manualmente”. Un termostato/termometro permette di gestire e impostare la temperatura interna (0°-7°).
 
 La sua inizializzazione `fridge(int id, int recupero, char * nome)` avviene con un determinato id, un booleano che serve a un eventuale "Recupero stato del Frigorifero" e una stringa con il nome "Fridge".
 
-L'umano può interagire con la lampadina nei seguenti modi:
+L'umano può interagire con la lampadina nei seguenti modi: 
 
-- `set`: Controlla che la finestra non sia già aprta e nel caso sia chiusa l'apre e inizializza il tempo di inizio d'utilizzo a 0.
-  - `close`: Chiude la finestra.
-  - `get info`: Chiede le info.
-  - `close`: Chiude la finestra.
-  - `get info`: Chiede le info.
+- `set`: il quarto parametro è il valore da impostare
+  - `interruttore`: con valore 1 viene aperto il frigo, mentre 0 chiude il frigo.
+  - `delay`: viene settato delay al valore.
+  - `percentuale`: viene settato percentuale al valore.
+  - `termostato`: viene settato termostato al valore.
 
-- `get`: Chiede il tempo di utilizzo alla finestra e viene stampato.
-  - `close`: Chiude la finestra.
-  - `get info`: Chiede le info.
-  - `close`: Chiude la finestra.
-  - `get info`: Chiede le info.
-
-
+- `get`: 
+  - `info`: viene ritornato informazioni del frigo.
+  - `time`: viene ritornato il tempo di apertura se il frigo è aperto, altrimenti 0.
+  - `stato`: viene ritornato lo stato del frigo, 1 se aperto, 0 altrimenti.
+  - `delay`: viene ritornato il valore di delay.
+  - `percentuale`: viene ritornata la percentuale di riempimento.
+  - `termostato`: viene ritornata la temperatura interna.
 
 ### Umano
 I dispositivi per comunicare con l'umano utilizzano le fifo.
