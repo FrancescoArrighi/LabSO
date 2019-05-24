@@ -120,13 +120,15 @@ void window(int id, int recupero, char * nome){
         printf("Codice richiesta: %d\n", richiesta);
         if(richiesta > 0) { //quando ricevo la risposta
           msgrcv(queue, &messaggio, sizeof(messaggio.msg_text), MSG_FIFO, 0);
-          printf("Ricevuta risposta\n");
+          printf("Window fifo: Ricevuta risposta\n");
           char **info_response;
           char *str_temp = (char *) malloc(sizeof(char) * 80);
           protocoll_parser(messaggio.msg_text, &info_response);
           memset(buf_w, 0, sizeof(buf_w)); //pulisco buf_w
           //concateno i dati ricevuti
-          if (richiesta == MSG_INF) {
+          printf("Codice richiesta: %d\n", richiesta);
+          if ((richiesta == MSG_INF) && codice_messaggio(info_response) == MSG_INF_WINDOW) {
+            printf("Window fifo: Info\n");
             sprintf(str_temp, "\nNome: %s\n", info_response[WINDOW_INF_NOME]);
             strcpy(buf_w, str_temp);
             sprintf(str_temp, "Id: %s\n", info_response[MSG_ID_MITTENTE]);
@@ -135,14 +137,19 @@ void window(int id, int recupero, char * nome){
             strcat(buf_w, str_temp);
             sprintf(str_temp, "Tempo di utilizzo: %s\n", info_response[WINDOW_INF_TIME]);
             strcat(buf_w, str_temp);
-            write(fd_write, buf_w, strlen(buf_w)+1); //srivo su fifo buf_w
+            write(fd_write, buf_w, strlen(buf_w)+1);
           }
           else if (richiesta == MSG_WINDOW_GETTIME) {
+            printf("Bulb fifo: Info\n");
             sprintf(str_temp, "Tempo di utilizzo: %s\n", info_response[WINDOW_TIME]);
             strcpy(buf_w, str_temp);
             write(fd_write, buf_w, strlen(buf_w)+1);
-            }
-          write(fd_write, buf_w, strlen(buf_w)+1); //srivo su fifo buf_w
+          }
+          else {
+            sprintf(str_temp, "\nRichiesta non identificata\n");
+            strcpy(buf_w, str_temp);
+            write(fd_write, buf_w, strlen(buf_w)+1); //srivo su fifo buf_w
+          }
           richiesta = -1;
           printf("Scrivo su fifo: %s\n", buf_w);
         }
@@ -167,7 +174,7 @@ void window(int id, int recupero, char * nome){
 
     //inizio loop
     while (TRUE) {
-      printf("Pronta per ricevere \n");
+      printf("Window: Pronta per ricevere \n");
       msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), NUOVA_OPERAZIONE, 0);
       protocoll_parser(messaggio.msg_text, &msg);
       int codice = codice_messaggio(msg);
@@ -176,7 +183,7 @@ void window(int id, int recupero, char * nome){
       printf("Cod %d\n", atoi(msg[MSG_OP]));
 
       if(codice == MSG_INF && controllo_window(msg,id)) { //richiesta info
-        printf("Richiesta info\n");
+        printf("Window: Richiesta info\n");
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_WINDOW);
         concat_string(&risposta, msg[MSG_ID_MITTENTE]); //concat id padre
         concat_string(&risposta, name);
@@ -192,6 +199,7 @@ void window(int id, int recupero, char * nome){
         }
       }
       else if(codice == MSG_OVERRIDE && controllo_window(msg, id)){
+        printf("Window: Messaggio di override\n");
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_WINDOW);
         concat_string(&risposta, msg[MSG_ID_MITTENTE]); //concat id padre
         concat_string(&risposta, name);
