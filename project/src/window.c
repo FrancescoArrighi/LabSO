@@ -1,10 +1,10 @@
 #include "window.h"
 
 /* Operazioni di una Window
-MSG_WINDOW_OPEN    = 510001
-MSG_WINDOW_CLOSE   = 510002
-MSG_WINDOW_GETTIME = 510003
-MSG_WINDOW_GETINFO = 510004
+MSG_WINDOW_OPEN    = 610001
+MSG_WINDOW_CLOSE   = 610002
+MSG_WINDOW_GETTIME = 610003
+MSG_WINDOW_GETINFO = 610004
 */
 
 // Interruttori OPEN/CLOSE
@@ -115,8 +115,8 @@ void window(int id, int recupero, char * nome){
           memset(buf_w, 0, sizeof(buf_w)); //pulisco buf_w
           //concateno i dati ricevuti
           if (richiesta == MSG_INF) {
-            sprintf(str_temp, "Nome: %s\n", info_response[WINDOW_INF_NOME]);
-            strcat(buf_w, str_temp);
+            sprintf(str_temp, "\nNome: %s\n", info_response[WINDOW_INF_NOME]);
+            strcpy(buf_w, str_temp);
             sprintf(str_temp, "Id: %s\n", info_response[MSG_ID_MITTENTE]);
             strcat(buf_w, str_temp);
             sprintf(str_temp, "Stato: %s\n", info_response[WINDOW_INF_STATO]);
@@ -184,9 +184,12 @@ void window(int id, int recupero, char * nome){
         send_message(q_ris, &risposta, risposta.msg_text, 2);
       }
       else if(codice_messaggio(msg) == MSG_SALVA_SPEGNI && controllo_window(msg, id)){
-        concat_dati_window(&messaggio, status, t_start);
-        send_message(queue, &messaggio, messaggio.msg_text, 10);
-        //printf("Lampadina pronta per essere eliminata\n");
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_WINDOW);
+        concat_int(&risposta, WINDOW);
+        concat_int(&risposta, id);
+        concat_dati_window(&risposta, status, t_start);
+        send_message(queue, &risposta, messaggio.msg_text, 10);
+        //printf("Finestra pronta per essere eliminata\n");
         exit(EXIT_SUCCESS);
       }
       else if(codice_messaggio(msg) == MSG_SPEGNI && controllo_window(msg, id)){
@@ -196,9 +199,12 @@ void window(int id, int recupero, char * nome){
         exit(EXIT_SUCCESS);
       }
       else if(codice_messaggio(msg) == MSG_RIMUOVIFIGLIO && controllo_window(msg, id)){
-        concat_dati_window(&messaggio, status, t_start);
-        send_message(queue, &messaggio, messaggio.msg_text, 10);
-        //printf("Lampadina pronta per essere eliminata\n");
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_WINDOW);
+        concat_int(&risposta, WINDOW);
+        concat_int(&risposta, id);
+        concat_dati_window(&risposta, status, t_start);
+        send_message(queue, &risposta, messaggio.msg_text, 10);
+        //printf("Finestra pronta per essere eliminata\n");
         exit(EXIT_SUCCESS);
       }
       else if(codice_messaggio(msg) == MSG_GET_TERMINAL_TYPE && controllo_window(msg, id)){
@@ -296,4 +302,27 @@ int equal_window(msgbuf * msg1, msgbuf * msg2){
   }
 
   return rt;
+}
+
+int leggi_info_window(msgbuf * m) {
+  int r = FALSE;
+  char ** ris;
+  char tmp[80];
+  char stampa[BUF_SIZE];
+  protocoll_parser(m->msg_text, &ris);
+
+  if ((codice_messaggio(ris) == MSG_INF_WINDOW) && ((atoi(ris[MSG_TYPE_MITTENTE]) == WINDOW) || (atoi(ris[MSG_TYPE_MITTENTE]) == DEFAULT))) {
+    sprintf(tmp, "\nNome: %s\n", ris[WINDOW_INF_NOME]);
+    strcpy(stampa, tmp);
+    sprintf(tmp, "Id: %s\n", ris[MSG_ID_MITTENTE]);
+    strcat(stampa, tmp);
+    sprintf(tmp, "Stato: %s\n", ris[WINDOW_INF_STATO]);
+    strcat(stampa, tmp);
+    sprintf(tmp, "Tempo di utilizzo: %s\n", ris[WINDOW_INF_TIME]);
+    strcat(stampa, tmp);
+
+    r = TRUE;
+    printf("Ecco le info: %s\n", stampa);
+  }
+  return r;
 }

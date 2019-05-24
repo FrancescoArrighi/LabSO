@@ -7,10 +7,10 @@
 #define BULB_H
 
 //Operazioni di una Bulb
-#define MSG_BULB_SWITCH_S 410001
-#define MSG_BULB_SWITCH_I 410002
-#define MSG_BULB_GETTIME 410003
-#define MSG_BULB_GETINFO 410004
+#define MSG_BULB_SWITCH_S 510001
+#define MSG_BULB_SWITCH_I 510002
+#define MSG_BULB_GETTIME 510003
+#define MSG_BULB_GETINFO 510004
 
 //Campi per Info
 #define BULB_INF_NOME 6
@@ -19,9 +19,9 @@
 #define BULB_INF_TIME 9
 
 //Campo per Ripristino
-#define BULB_REC_STATO 5
-#define BULB_REC_INTERRUTTORE 6
-#define BULB_REC_TSTART 7
+#define BULB_REC_STATO 7
+#define BULB_REC_INTERRUTTORE 8
+#define BULB_REC_TSTART 9
 
 //Campo GetTime
 #define BULB_TIME 5
