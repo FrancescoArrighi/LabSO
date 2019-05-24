@@ -519,6 +519,7 @@ void hub(int id, int recupero, char * nome){
       mesg_non_supp = TRUE;
     }
     if(codice_messaggio(msg) == MSG_SALVA_SPEGNI || codice_messaggio(msg) == MSG_SPEGNI || flag_rimuovi){
+      printf("spengo per %s\n",msg[MSG_ID_MITTENTE] );
       mesg_non_supp = FALSE;
       if(id_dest == DEFAULT || id_dest == id || flag_rimuovi){
         msgbuf msg_salva;

@@ -357,3 +357,23 @@ int leggi(int queue, msgbuf * messaggio, int p, float t){
   }
   return rt;
 }
+
+// Funzione che crea una stringa "/tmp/D_id_" con l'id passato aggiungendo
+//una W o R a seconda che il file sia Writer o Reader
+char * percorso_file(int id, int tipo){
+  char * tmp1 = "/tmp/D_";
+  char * tmp2;
+  itoa(id,&tmp2);
+  char * r = (char *) malloc(sizeof(char) * (strlen(tmp1) + strlen(tmp2) + 3));
+  strcpy(r, tmp1);
+  strcat(r, tmp2);
+
+  if (tipo == READ) {
+    strcat(r, "_R");
+  }
+  else {
+    strcat(r, "_W");
+  }
+
+  return r;
+}

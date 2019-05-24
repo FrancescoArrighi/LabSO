@@ -247,7 +247,7 @@ void deposito(int id, int id_controller){
       }
       else if(new_type == BULB){
         if(fork() == 0){
-          //timer();
+          bulb(new_id, FALSE, "bulb");
           exit(0);
         }
       }

@@ -22,7 +22,7 @@
 #define MYHEADER_H
 
 //Size funzioni
-#define MSG_SIZE 100
+#define MSG_SIZE 250
 //valori di verità
 #define TRUE 1
 #define FALSE 0
@@ -107,6 +107,8 @@
 
 #define MSG_SALVA_SPEGNI 16
 #define MSG_SPEGNI 17
+
+#define BUF_SIZE 150
 
 //Struct
 typedef struct pair_int{

@@ -45,4 +45,7 @@ void svuota_msg_queue(int queue, int p);
 
 int leggi(int queue, msgbuf * messaggio, int p, float t);
 
+char * percorso_file(int id, int tipo);
+
+
 #endif

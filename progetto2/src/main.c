@@ -1,9 +1,6 @@
 #include "main.h"
 
 
-int equal_bulb(msgbuf msg_example, msgbuf messaggio){ //da fare
-  return TRUE;
-}
 
 int equal_fridge(msgbuf msg_example, msgbuf messaggio){ // da fare
   return TRUE;
@@ -114,29 +111,54 @@ void lik(char ** cmd, int n, int_list * figli, int queue, int deposito){
           flag2 = FALSE;
         }
       }
-      //printf("\n6\n");
-      crea_messaggio_base(&messaggio, DEFAULT, CONTROLLER, id_d2, CONTROLLER, MSG_AGGIUNGI);
-      concat_int(&messaggio, id_d1);
-      messaggio.msg_type = NUOVA_OPERAZIONE;
-      msgsnd(deposito, &messaggio, sizeof(messaggio.msg_text), 0);
 
-      crea_messaggio_base(&messaggio, DEFAULT, CONTROLLER, id_d2, CONTROLLER, MSG_AGGIUNGI);
-      concat_int(&messaggio, id_d1);
-      messaggio.msg_type = NUOVA_OPERAZIONE;
-      invia_broadcast(&messaggio, figli);
-
-      flag2 = TRUE;
       int flag3 = FALSE;
+      //printf("\n6\n");
+      if(id_d2 == CONTROLLER || id_d2 == DEFAULT){
+        sleep(1);
+        printf("CC 1\n" );
 
-      for(i = figli->n + 1; i > 0 && flag2; i--){
-        if(leggi(queue, &risposta_figli, 2, 2)){
-          dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
-          if(codice_messaggio(msg_risp_f) == MSG_ACKP){
-            flag3 = TRUE;
+        crea_messaggio_base(&messaggio, DEPOSITO, CONTROLLER, DEPOSITO, CONTROLLER, MSG_DEPOSITO_DEL);
+        concat_int(&messaggio, id_d1);
+        messaggio.msg_type = NUOVA_OPERAZIONE;
+        msgsnd(deposito, &messaggio, sizeof(messaggio.msg_text), 0);
+
+        msgbuf richiesta_figlio;
+
+        int q_nf;
+
+        crea_queue(id_d1, &q_nf);
+        insert_int(q_nf, 0, figli);
+        crea_messaggio_base(&richiesta_figlio, DEFAULT, CONTROLLER, DEFAULT, id_d1, MSG_SALVA_SPEGNI);
+        richiesta_figlio.msg_type = NUOVA_OPERAZIONE;
+        msgsnd(q_nf, &richiesta_figlio, sizeof(richiesta_figlio.msg_text), 0);
+        recupero_in_cascata(q_nf);
+        flag3 = TRUE;
+
+      }
+      else{
+        crea_messaggio_base(&messaggio, DEFAULT, CONTROLLER, id_d2, CONTROLLER, MSG_AGGIUNGI);
+        concat_int(&messaggio, id_d1);
+        messaggio.msg_type = NUOVA_OPERAZIONE;
+        msgsnd(deposito, &messaggio, sizeof(messaggio.msg_text), 0);
+
+        crea_messaggio_base(&messaggio, DEFAULT, CONTROLLER, id_d2, CONTROLLER, MSG_AGGIUNGI);
+        concat_int(&messaggio, id_d1);
+        messaggio.msg_type = NUOVA_OPERAZIONE;
+        invia_broadcast(&messaggio, figli);
+
+        flag2 = TRUE;
+
+        for(i = figli->n + 1; i > 0 && flag2; i--){
+          if(leggi(queue, &risposta_figli, 2, 2)){
+            dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
+            if(codice_messaggio(msg_risp_f) == MSG_ACKP){
+              flag3 = TRUE;
+            }
           }
-        }
-        else{
-          flag2 = FALSE;
+          else{
+            flag2 = FALSE;
+          }
         }
       }
       if(flag3 == TRUE){

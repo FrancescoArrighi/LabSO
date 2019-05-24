@@ -31,6 +31,9 @@ hub.o : hub.h hub.c
 deposito.o : deposito.h deposito.c
 	$(CC) $(CFLAGS) -c deposito.c
 
+bulb.o : bulb.h bulb.c
+	$(CC) $(CFLAGS) -c bulb.c
+
 clean :
 	@rm $(SRCDIR)/*.o a.out
 

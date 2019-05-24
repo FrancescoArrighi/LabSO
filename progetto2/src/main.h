@@ -5,7 +5,6 @@
 #define MAIN_H
 
 
-int equal_bulb(msgbuf msg_example, msgbuf messaggio);
 
 int equal_fridge(msgbuf msg_example, msgbuf messaggio);
 
