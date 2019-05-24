@@ -17,11 +17,18 @@ void window(int id, int recupero, char * nome){
   time_t t_start = 0; //Tempo per il quale è rimasta aperta
   char * name = strdup(nome);
 
+  pid_t idf = -1;
+
   int queue;
   msgbuf messaggio;
-  create_queue(id, &queue);
+  msgbuf risposta;
+  msgbuf rec_buf;
+  msgbuf tmp_buf;
 
-  pid_t idf = -1;
+  rec_buf.msg_type = 10;
+
+  crea_queue(id, &queue);
+  printf("Window: %d - pid: %d - ppid: %d\n", id, getpid(), getppid());
 
   int flag = FALSE;
 
@@ -81,12 +88,14 @@ void window(int id, int recupero, char * nome){
       }
       else if (n_arg == 2){
         if(strcmp(cmd[1], "open") == 0){
-          crea_messaggio_base(&messaggio, WINDOW, WINDOW, id, id, MSG_WINDOW_OPEN);
-          send_message(queue, &messaggio, messaggio.msg_text, NUOVA_OPERAZIONE);
+          crea_messaggio_base(&tmp_buf, WINDOW, WINDOW, id, id, MSG_WINDOW_OPEN);
+          tmp_buf.msg_type = NUOVA_OPERAZIONE;
+          msgsnd(queue, &tmp_buf, sizeof(tmp_buf.msg_text), 0);
         }
         else if(strcmp(cmd[1], "close") == 0){
-          crea_messaggio_base(&messaggio, WINDOW, WINDOW, id, id, MSG_WINDOW_CLOSE);
-          send_message(queue, &messaggio, messaggio.msg_text, NUOVA_OPERAZIONE);
+          crea_messaggio_base(&tmp_buf, WINDOW, WINDOW, id, id, MSG_WINDOW_CLOSE);
+          tmp_buf.msg_type = NUOVA_OPERAZIONE;
+          msgsnd(queue, &tmp_buf, sizeof(tmp_buf.msg_text), 0);
         }
         else {
           printf("Operazione non valida\n");
@@ -94,20 +103,23 @@ void window(int id, int recupero, char * nome){
       }
       else if((n_arg == 3) && (strcmp(cmd[1], "get") == 0)){
         if(strcmp(cmd[2], "time") == 0){
-          crea_messaggio_base(&messaggio, WINDOW, WINDOW, id, id, MSG_WINDOW_GETTIME);
-          send_message(queue, &messaggio, messaggio.msg_text, NUOVA_OPERAZIONE);
+          crea_messaggio_base(&tmp_buf, WINDOW, WINDOW, id, id, MSG_WINDOW_GETTIME);
+          tmp_buf.msg_type = NUOVA_OPERAZIONE;
+          msgsnd(queue, &tmp_buf, sizeof(tmp_buf.msg_text), 0);
           richiesta = MSG_WINDOW_GETTIME;
         }
         else if(strcmp(cmd[2], "info") == 0){
-          crea_messaggio_base(&messaggio, WINDOW, WINDOW, id, id, MSG_INF);
-          send_message(queue, &messaggio, messaggio.msg_text, NUOVA_OPERAZIONE);
+          crea_messaggio_base(&tmp_buf, WINDOW, WINDOW, id, id, MSG_INF);
+          tmp_buf.msg_type = NUOVA_OPERAZIONE;
+          msgsnd(queue, &tmp_buf, sizeof(tmp_buf.msg_text), 0);
           richiesta = MSG_INF;
         }
 
         fd_write = open(wfifo, O_WRONLY); //apro fifo di scrittura
 
         printf("Codice richiesta: %d\n", richiesta);
-        if((richiesta > 0) && ((msgrcv(queue, &messaggio,sizeof(messaggio.msg_text), 5, 0)) != -1)) { //quando ricevo la risposta
+        if(richiesta > 0) { //quando ricevo la risposta
+          msgrcv(queue, &messaggio, sizeof(messaggio.msg_text), MSG_FIFO, 0);
           printf("Ricevuta risposta\n");
           char **info_response;
           char *str_temp = (char *) malloc(sizeof(char) * 80);
@@ -150,94 +162,142 @@ void window(int id, int recupero, char * nome){
     free(rfifo); // Libero la memoria allocata
     free(wfifo); // Libero la memoria allocata
   }
-
   else {
-    msgbuf risposta;
     int q_ris;
 
     //inizio loop
-    while ((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), NUOVA_OPERAZIONE, 0)) != -1) {
+    while (TRUE) {
+      printf("Pronta per ricevere \n");
+      msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), NUOVA_OPERAZIONE, 0);
       protocoll_parser(messaggio.msg_text, &msg);
-      create_queue(atoi(msg[MSG_ID_MITTENTE]), & q_ris);
-      printf("Sto per ricevere\n");
+      int codice = codice_messaggio(msg);
+      crea_queue(atoi(msg[MSG_ID_MITTENTE]), &q_ris);
+      printf("Window ha ricevuto\n");
       printf("Cod %d\n", atoi(msg[MSG_OP]));
 
-      if(codice_messaggio(msg) == MSG_INF && controllo_window(msg,id)) { //richiesta info su me stesso
+      if(codice == MSG_INF && controllo_window(msg,id)) { //richiesta info
+        printf("Richiesta info\n");
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_WINDOW);
         concat_string(&risposta, msg[MSG_ID_MITTENTE]); //concat id padre
         concat_string(&risposta, name);
         concat_int(&risposta, status);
         concat_int(&risposta, tempo_window_on(status, t_start));
         if(atoi(msg[MSG_ID_MITTENTE]) == id){
-          send_message(q_ris, &risposta, risposta.msg_text, 5); //mando un messaggio alla fifo
+          risposta.msg_type = MSG_FIFO;
+          msgsnd(queue, &risposta, sizeof(risposta.msg_text), 0); //mando un messaggio alla fifo
         }
         else{
-          send_message(q_ris, &risposta, risposta.msg_text, 2);
+          risposta.msg_type = 2;
+          msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
         }
       }
-      else if(codice_messaggio(msg) == MSG_OVERRIDE && controllo_window(msg, id)){
-        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF);
+      else if(codice == MSG_OVERRIDE && controllo_window(msg, id)){
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_WINDOW);
         concat_string(&risposta, msg[MSG_ID_MITTENTE]); //concat id padre
         concat_string(&risposta, name);
         concat_int(&risposta, status);
         concat_int(&risposta, tempo_window_on(status, t_start));
-        send_message(q_ris, &risposta, risposta.msg_text, 2);
+        risposta.msg_type = 2;
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
-      else if(codice_messaggio(msg) == MSG_SALVA_SPEGNI && controllo_window(msg, id)){
-        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_WINDOW);
-        concat_int(&risposta, WINDOW);
-        concat_int(&risposta, id);
-        concat_dati_window(&risposta, status, t_start);
-        send_message(queue, &risposta, messaggio.msg_text, 10);
-        //printf("Finestra pronta per essere eliminata\n");
+      else if(codice == MSG_SALVA_SPEGNI && controllo_window(msg, id)){
+        printf("Window: Sto salvando i dati\n");
+        crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_WINDOW);
+        concat_int(&rec_buf, WINDOW);
+        concat_int(&rec_buf, id);
+        concat_dati_window(&rec_buf, status, t_start);
+        msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
         exit(EXIT_SUCCESS);
       }
-      else if(codice_messaggio(msg) == MSG_SPEGNI && controllo_window(msg, id)){
+      else if(codice == MSG_SPEGNI && controllo_window(msg, id)){
+        printf("Window: Spegnimento\n");
         if(idf > 0){
           kill(idf, SIGTERM);
         }
         exit(EXIT_SUCCESS);
       }
-      else if(codice_messaggio(msg) == MSG_RIMUOVIFIGLIO && controllo_window(msg, id)){
-        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_WINDOW);
-        concat_int(&risposta, WINDOW);
-        concat_int(&risposta, id);
-        concat_dati_window(&risposta, status, t_start);
-        send_message(queue, &risposta, messaggio.msg_text, 10);
-        //printf("Finestra pronta per essere eliminata\n");
-        exit(EXIT_SUCCESS);
+      else if(codice == MSG_RIMUOVIFIGLIO && controllo_window(msg, id)){
+        printf("Window: ricevuto messaggio rimuovi figlio\n");
+        int queue_deposito;
+        crea_queue(DEPOSITO, &queue_deposito);
+        if(id == atoi(msg[MSG_RIMUOVIFIGLIO_ID])){ //se sono io
+          printf("Window: Sono io il figlio da eliminare\n");
+          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+          risposta.msg_type = 2;
+          msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
+          if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEP){ //se la specifica è SPEC_DEP
+            crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_WINDOW);
+            concat_int(&rec_buf, WINDOW);
+            concat_int(&rec_buf, id);
+            concat_dati_window(&rec_buf, status, t_start);
+            msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
+            printf("Window: Dati salvati per il recupero, invio aggiungi al deposito e termino\n");
+            crea_messaggio_base(&tmp_buf, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_AGGIUNGI); //il deposito deve aggiungere un nuovo frigo
+            concat_int(&tmp_buf, id); // con mio stesso id
+            tmp_buf.msg_type = NUOVA_OPERAZIONE;
+            msgsnd(queue_deposito, &tmp_buf, sizeof(tmp_buf.msg_text), 0);
+            exit(EXIT_SUCCESS); //termino processo
+          }
+          else if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_SALVA){ //se devo solo salvarmi
+            printf("Window: salvo i dati\n");
+            crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_WINDOW);
+            concat_int(&rec_buf, WINDOW);
+            concat_int(&rec_buf, id);
+            concat_dati_window(&rec_buf, status, t_start);
+            msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
+            exit(EXIT_SUCCESS);
+          }
+          else if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEL){ //se devo solo terminare
+            printf("Window: termino\n");
+            if(idf >= 0){
+              kill(idf, SIGTERM); //termino eventuale figlio che gestisce fifo
+            }
+            exit(EXIT_SUCCESS); // termino processo
+          }
+        }
+        else{ // se disp da eliminare non sono io, mando un ACKN
+          printf("Window: non sono il dispositivo da eliminare\n");
+          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+          risposta.msg_type = 2;
+          msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
+        }
       }
-      else if(codice_messaggio(msg) == MSG_GET_TERMINAL_TYPE && controllo_window(msg, id)){
+      else if(codice == MSG_GET_TERMINAL_TYPE && controllo_window(msg, id)){
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_MYTYPE);
         concat_int(&risposta, WINDOW);
-        send_message(q_ris, &risposta, risposta.msg_text, 2);
+        risposta.msg_type = 2;
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
-      else if(codice_messaggio(msg) == MSG_WINDOW_OPEN && controllo_window(msg, id)){
+      else if(codice == MSG_WINDOW_OPEN && controllo_window(msg, id)){
         apri_window(&status, &t_start);
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
-        send_message(q_ris, &risposta, risposta.msg_text, 2);
+        risposta.msg_type = 2;
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
-      else if(codice_messaggio(msg) == MSG_WINDOW_CLOSE && controllo_window(msg, id)){
+      else if(codice == MSG_WINDOW_CLOSE && controllo_window(msg, id)){
         chiudi_window(&status);
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
-        send_message(q_ris, &risposta, risposta.msg_text, 2);
+        risposta.msg_type = 2;
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
-      else if(codice_messaggio(msg) == MSG_WINDOW_GETTIME && controllo_window(msg, id)){
+      else if(codice == MSG_WINDOW_GETTIME && controllo_window(msg, id)){
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
         concat_int(&risposta, tempo_window_on(status, t_start));
-        send_message(q_ris, &risposta, risposta.msg_text, 5);
+        risposta.msg_type = MSG_FIFO;
+        msgsnd(queue, &risposta, sizeof(risposta.msg_text), 0);
       }
-      else if(codice_messaggio(msg) == MSG_AGGIUNGI && controllo_window(msg, id)){
+      else if(codice == MSG_AGGIUNGI && controllo_window(msg, id)){
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
-        send_message(q_ris, &risposta, risposta.msg_text, 2);
+        risposta.msg_type = 2;
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
       else{
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
-        send_message(q_ris, &risposta, risposta.msg_text, 2);
+        risposta.msg_type = 2;
+        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
     }
   }
-  printf("Errore lettura queue WINDOW\n");
 }
 
 void concat_dati_window(msgbuf * m, int s, time_t t){
@@ -258,9 +318,9 @@ void concat_dati_window(msgbuf * m, int s, time_t t){
 
 int controllo_window(char ** str, int id){
   int rt = FALSE;
-  if(atoi(str[MSG_ID_DESTINATARIO]) == id || atoi(str[MSG_ID_DESTINATARIO]) == 0){
+  if(atoi(str[MSG_ID_DESTINATARIO]) == id || atoi(str[MSG_ID_DESTINATARIO]) == DEFAULT){
       rt = TRUE;
-    }
+  }
   return rt;
 }
 
@@ -304,25 +364,19 @@ int equal_window(msgbuf * msg1, msgbuf * msg2){
   return rt;
 }
 
-int leggi_info_window(msgbuf * m) {
+int stampa_info_window(msgbuf * m){
   int r = FALSE;
-  char ** ris;
-  char tmp[80];
-  char stampa[BUF_SIZE];
-  protocoll_parser(m->msg_text, &ris);
+  char ** msg;
+  protocoll_parser(m->msg_text, &msg);
 
-  if ((codice_messaggio(ris) == MSG_INF_WINDOW) && ((atoi(ris[MSG_TYPE_MITTENTE]) == WINDOW) || (atoi(ris[MSG_TYPE_MITTENTE]) == DEFAULT))) {
-    sprintf(tmp, "\nNome: %s\n", ris[WINDOW_INF_NOME]);
-    strcpy(stampa, tmp);
-    sprintf(tmp, "Id: %s\n", ris[MSG_ID_MITTENTE]);
-    strcat(stampa, tmp);
-    sprintf(tmp, "Stato: %s\n", ris[WINDOW_INF_STATO]);
-    strcat(stampa, tmp);
-    sprintf(tmp, "Tempo di utilizzo: %s\n", ris[WINDOW_INF_TIME]);
-    strcat(stampa, tmp);
-
+  if ((codice_messaggio(msg) == MSG_INF_WINDOW) && ((atoi(msg[MSG_TYPE_MITTENTE]) == WINDOW) || (atoi(msg[MSG_TYPE_MITTENTE]) == DEFAULT))) {
+    printf("\ninfo window:\n---------------------------------- \n");
+    printf("%s[WINDOW] : %s\n", msg[WINDOW_INF_NOME], msg[MSG_ID_MITTENTE]);
+    printf("| Stato : %s\n", msg[WINDOW_INF_STATO]);
+    printf("| Tempo di utilizzo : %s\n", msg[WINDOW_INF_TIME]);
+    printf("| \\ \n");
+    printf("\n---------------------------------- \n\n");
     r = TRUE;
-    printf("Ecco le info: %s\n", stampa);
   }
   return r;
 }

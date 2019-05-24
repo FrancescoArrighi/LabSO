@@ -1,6 +1,5 @@
 //Header globale
 #include "myheader.h"
-#include "msg_exchange.h"
 #include "useful_fun.h"
 
 #ifndef WINDOW_H
@@ -13,16 +12,16 @@
 #define MSG_WINDOW_GETINFO 610004
 
 //Campi per Info
-#define WINDOW_INF_NOME 6
+#define WINDOW_INF_NOME 6 // Subito dopo l'id Padre
 #define WINDOW_INF_STATO 7
 #define WINDOW_INF_TIME 8
 
-//Campo per Ripristino
+//Campi per Ripristino
 #define WINDOW_REC_STATO 7
 #define WINDOW_REC_TSTART 8
 
 //Campo GetTime
-#define WINDOW_TIME 5
+#define WINDOW_TIME 5 // quando viene chiesto il tempo viene concatenato solo il tempo d'utilixxo
 
 void window(int id, int recupero, char * nome);
 int tempo_window_on(int s, time_t t);
