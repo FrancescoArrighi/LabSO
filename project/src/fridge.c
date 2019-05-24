@@ -570,3 +570,22 @@ int controlla_fridge(char ** str, int id){ // controllo se sono io il destinatar
   }
   return rt;
 }
+
+void stampa_info_fridge(msgbuf *buf){
+  char ** msg;
+  int codice;
+  protocoll_parser(buf->msg_text, &msg);
+  codice = codice_messaggio(msg);
+  if((codice == MSG_INF_FRIDGE) && (atoi(msg[MSG_TYPE_MITTENTE]) == FRIDGE)){
+    printf("\ninfo fridge:\n---------------------------------- \n");
+    printf("%s(FRIDGE) : %s\n", msg[MSG_FRIDGE_INF_NOME], msg[MSG_ID_MITTENTE]);
+    printf("| Stato : %s\n", msg[MSG_FRIDGE_INF_STATO]);
+    printf("| Interruttore : %s\n", msg[MSG_FRIDGE_INF_STATO]);
+    printf("| Termostato : %s\n", msg[MSG_FRIDGE_INF_TERM]);
+    printf("| Time : %s\n", msg[MSG_FRIDGE_INF_TIME]);
+    printf("| Delay : %s\n", msg[MSG_FRIDGE_INF_DELAY]);
+    printf("| Percentuale di riempimento : %s\n", msg[MSG_FRIDGE_INF_PERC]);
+    printf("| \\ \n");
+    printf("\n---------------------------------- \n\n");
+  }
+}

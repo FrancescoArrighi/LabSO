@@ -68,5 +68,6 @@ void set_perc(int valore, t_frigo *frigo);
 void salva_dati(t_frigo *frigo, time_t t_start, int allarme, int idf); //salva i dati del frigo e li invia al frigo con id = valore
 void send_info_fridge(char **msg, t_frigo *frigo); //invia la risposta di info
 int equal_fridge(msgbuf *msg1, msgbuf *msg2);
+void stampa_info_fridge(msgbuf *buf);
 
 #endif
