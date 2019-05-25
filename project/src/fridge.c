@@ -572,7 +572,7 @@ int controlla_fridge(char ** str, int id){ // controllo se sono io il destinatar
   return rt;
 }
 
-void stampa_info_fridge(msgbuf *buf){
+/*void stampa_info_fridge(msgbuf *buf){
   char ** msg;
   int codice;
   protocoll_parser(buf->msg_text, &msg);
@@ -588,5 +588,34 @@ void stampa_info_fridge(msgbuf *buf){
     printf("| Percentuale di riempimento : %s\n", msg[MSG_FRIDGE_INF_PERC]);
     printf("| \\ \n");
     printf("\n---------------------------------- \n\n");
+  }
+}*/
+
+void stampa_info_fridge(msgbuf *buf){
+  char ** msg;
+  char info[300], str_temp[50];
+  int codice;
+  protocoll_parser(buf->msg_text, &msg);
+  codice = codice_messaggio(msg);
+  if((codice == MSG_INF_FRIDGE) && (atoi(msg[MSG_TYPE_MITTENTE]) == FRIDGE)){
+    strcat(info, "\ninfo fridge:\n---------------------------------- \n");
+    sprintf(str_temp, "%s(FRIDGE) : ", msg[MSG_FRIDGE_INF_NOME]); //concateno i dati ricevuti
+    strcat(info, str_temp);
+    sprintf(str_temp, "%s\n", msg[MSG_ID_MITTENTE]);
+    strcat(info, str_temp);
+    sprintf(str_temp, "| Stato : %s\n", msg[MSG_FRIDGE_INF_STATO]);
+    strcat(info, str_temp);
+    sprintf(str_temp, "| Interruttore : %s\n", msg[MSG_FRIDGE_INF_INTERRUTTORE]);
+    strcat(info, str_temp);
+    sprintf(str_temp, "| Temperatura interna : %s\n", msg[MSG_FRIDGE_INF_TERM]);
+    strcat(info, str_temp);
+    sprintf(str_temp, "| Time : %s\n", msg[MSG_FRIDGE_INF_TIME]);
+    strcat(info, str_temp);
+    sprintf(str_temp, "| Delay : %s\n", msg[MSG_FRIDGE_INF_DELAY]);
+    strcat(info, str_temp);
+    sprintf(str_temp, "| Percentuale di riempimento: %s\n", msg[MSG_FRIDGE_INF_PERC]);
+    strcat(info, str_temp);
+    strcat(info, "| \\ \n\n---------------------------------- \n\n");
+    printf("%s", info);
   }
 }
