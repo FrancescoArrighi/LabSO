@@ -1,6 +1,5 @@
 //Header globale
 #include "myheader.h"
-#include "msg_exchange.h"
 #include "useful_fun.h"
 
 #ifndef FRIDGE_H
@@ -20,15 +19,17 @@
 #define MSG_FRIDGE_INF_NOME 12
 
 //msg recupero
-#define MSG_FRIDGE_REC_STATO 5
-#define MSG_FRIDGE_REC_INTERRUTTORE 6
-#define MSG_FRIDGE_REC_TERM 7
-#define MSG_FRIDGE_REC_TIME 8
-#define MSG_FRIDGE_REC_DELAY 9
-#define MSG_FRIDGE_REC_PERC 10
-#define MSG_FRIDGE_REC_NOME 11
-#define MSG_FRIDGE_REC_TSTART 12
-#define MSG_FRIDGE_REC_ID 13
+#define MSG_FRIDGE_REC_TYPE 5
+#define MSG_FRIDGE_REC_ID 6
+#define MSG_FRIDGE_REC_STATO 7
+#define MSG_FRIDGE_REC_INTERRUTTORE 8
+#define MSG_FRIDGE_REC_TERM 9
+#define MSG_FRIDGE_REC_TIME 10
+#define MSG_FRIDGE_REC_DELAY 11
+#define MSG_FRIDGE_REC_PERC 12
+#define MSG_FRIDGE_REC_NOME 13
+#define MSG_FRIDGE_REC_TSTART 14
+
 
 //msg cod op
 #define MSG_FRIDGE_SETSTATO 710002
