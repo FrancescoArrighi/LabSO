@@ -10,6 +10,7 @@ MSG_BULB_GETINFO  = 510004
 
 /* Funzione Bulb */
 void bulb(int id, int recupero, char * nome){ //recupero booleano
+  signal(SIGCHLD, SIG_IGN); //evita che vengono creati processi zombie quando processi figli eseguono exit
   int status = FALSE;
   int interruttore = FALSE;
   time_t t_start = 0;
@@ -41,6 +42,8 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
       status = atoi(msg[BULB_REC_STATO]);
       interruttore = atoi(msg[BULB_REC_INTERRUTTORE]);
       t_start = atoi(msg[BULB_REC_TSTART]);
+      name = (char *) malloc (sizeof(char) * (strlen(msg[BULB_REC_NOME]) + 1));
+      strcpy(name, msg[BULB_REC_NOME]);
     }
   }
 
@@ -85,7 +88,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
         flag = FALSE;
         //kill(getpid(),SIGTERM); //Io ucciderei il processo qua
       }
-      else if (n_arg == 2){ //Accetto comandi del tipo "BULB qualcosa"
+      else if (n_arg == 2){ //Accetto comandi del interruttore
         if(strcmp(cmd[1], "interruttore") == 0){
           crea_messaggio_base(&tmp_buf, BULB, BULB, id, id, MSG_BULB_SWITCH_I);
           tmp_buf.msg_type = NUOVA_OPERAZIONE;
@@ -215,7 +218,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
         crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_BULB);
         concat_int(&rec_buf, BULB);
         concat_int(&rec_buf, id);
-        concat_dati_bulb(&rec_buf, status, interruttore, t_start);
+        concat_dati_bulb(&rec_buf, status, interruttore, t_start, name);
         msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
         exit(EXIT_SUCCESS);
       }
@@ -241,7 +244,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
             crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_BULB);
             concat_int(&rec_buf, BULB);
             concat_int(&rec_buf, id);
-            concat_dati_bulb(&rec_buf, status, interruttore, t_start);
+            concat_dati_bulb(&rec_buf, status, interruttore, t_start, name);
             msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
             printf("Bulb: Dati salvati per il recupero, invio aggiungi al deposito e termino\n");
             crea_messaggio_base(&tmp_buf, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_AGGIUNGI); //il deposito deve aggiungere un nuovo frigo
@@ -255,7 +258,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
             crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_BULB);
             concat_int(&rec_buf, BULB);
             concat_int(&rec_buf, id);
-            concat_dati_bulb(&rec_buf, status, interruttore, t_start);
+            concat_dati_bulb(&rec_buf, status, interruttore, t_start, name);
             msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
             exit(EXIT_SUCCESS);
           }
@@ -318,20 +321,22 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
 
 // Funzione che prende i dati di una bulb e li concatena al messaggio salvato
 // nel buffer
-void concat_dati_bulb(msgbuf * m, int s, int i, time_t t){
+void concat_dati_bulb(msgbuf * m, int s, int i, time_t t, char * nb){
   char * st;
   itoa(s, &st);
   char * it;
   itoa(i, &it);
   char * tt;
   itoa(t, &tt);
-  char * r = (char *) malloc(sizeof(char) * strlen(m->msg_text) + strlen(st) + 1 + strlen(it) + 1 + strlen(tt) + 2);
+  char * r = (char *) malloc(sizeof(char) * strlen(m->msg_text) + strlen(st) + 1 + strlen(it) + 1 + strlen(tt) + 1 + strlen(nb) + 2);
   strcpy(r,m->msg_text);
   strcat(r,st);
   strcat(r,"\n");
   strcat(r,it);
   strcat(r,"\n");
   strcat(r,tt);
+  strcat(r,"\n");
+  strcat(r,nb);
   strcat(r,"\n");
   strcpy(m->msg_text, r);
 

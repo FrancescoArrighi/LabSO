@@ -21,12 +21,13 @@
 #define BULB_REC_STATO 7
 #define BULB_REC_INTERRUTTORE 8
 #define BULB_REC_TSTART 9
+#define BULB_REC_NOME 10
 
 //Campo GetTime
 #define BULB_TIME 5 // quando viene chiesto il tempo viene concatenato solo il tempo d'utilizzo
 
 void bulb(int id, int recupero, char * nome);
-void concat_dati_bulb(msgbuf * m, int s, int i, time_t t);
+void concat_dati_bulb(msgbuf * m, int s, int i, time_t t, char * nb);
 int controllo_bulb(char ** str, int id);
 void inverti_interruttore(int * s, int * i, time_t *t);
 void inverti_stato(int * s, int * i, time_t *t);

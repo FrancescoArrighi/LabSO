@@ -5,6 +5,21 @@
 3. Guixia Zhu 193378
 
 ## Sintesi Progetto:
+Ognuno dei dispositivi può comunicare con l'esterno utilizzando una `messagequeue`,la cui chiave viene generata usando il proprio id e lo scambio di messaggi avviene con un protocollo specifico e una specifica priorità. Ad esempio i dispositivi di controllo comunicano con i dispositivi terminali con messaggi di priorità 4 e riceve dai dispositivi controllati messaggi di priorità 2. In questo modo abbiamo simulato una gerarchia di messaggi per le code di ogni dispositivo.
+
+Il nostro protocollo prevede dei campi fissi che sono :
+
+- `MSG_TYPE_DESTINATARIO` alla posizione 0
+- `MSG_TYPE_MITTENTE` alla posizione 1
+- `MSG_ID_DESTINATARIO` alla posizione 2
+- `MSG_ID_MITTENTE` alla posizione 3
+- `MSG_OP` alla posizione 4
+
+Il campo `MSG_OP` corrisponde al tipo d'operazione che vogliamo eseguire o che venga eseguita.
+
+I messaggi mandati dai dispositivi di controllo attraversano tutto l'albero delle gerarchie e solo i dispositivi direttamenti interessati rispondono con un ack postitivo nel campo `MSG_OP`.
+
+Per la creazione di questo protocollo ci siamo ispirati ai protocolli utilizzati nelle reti.
 
 ### Dispositivi di controllo
 
@@ -13,7 +28,7 @@
 #### Timer:
 
 ### Dispositivi di interazione
-Ognuno dei dispositivi terminali crea una `messagequeue` che gli permette di comunicare con i dispositivi di controllo e un sottoprocesso che gli permette di comunicare con l'umano. 
+I dispositivi terminali hanno un sotttoprocesso che permette la comunicazione diretta con l'umano.
 
 #### Bulb:
 La nostra lampadina può essere accesa o spenta e ha un singolo interruttore di comando per il cambio di stato.
@@ -43,7 +58,7 @@ Il nostro frigerifero può essere aperto o chiuso con un singolo pulsante. Si ri
 
 La sua inizializzazione `fridge(int id, int recupero, char * nome)` avviene con un determinato id, un booleano che serve a un eventuale "Recupero stato del Frigorifero" e una stringa con il nome "Fridge".
 
-L'umano può interagire con la lampadina nei seguenti modi: 
+L'umano può interagire con la lampadina nei seguenti modi:
 
 - `set`: il quarto parametro è il valore da impostare
   - `interruttore`: con valore 1 viene aperto il frigo, mentre 0 chiude il frigo.
@@ -51,7 +66,7 @@ L'umano può interagire con la lampadina nei seguenti modi:
   - `percentuale`: viene settato percentuale al valore.
   - `termostato`: viene settato termostato al valore.
 
-- `get`: 
+- `get`:
   - `info`: viene ritornato informazioni del frigo.
   - `time`: viene ritornato il tempo di apertura se il frigo è aperto, altrimenti 0.
   - `stato`: viene ritornato lo stato del frigo, 1 se aperto, 0 altrimenti.
@@ -63,8 +78,8 @@ L'umano può interagire con la lampadina nei seguenti modi:
 I dispositivi per comunicare con l'umano utilizzano le fifo.
 Ogni dispositivo ha un corrispettivo file `"D_id dispositivo_R"` e un corrispettivo file `"D_id dispositivo_W"`.
 
-######`"D_id dispositivo_R"`
+`"D_id dispositivo_R"`
 Serve al dispositivo per leggere gli input che il nostro `"Umano"` gli dà.
 
-######`"D_id dispositivo_W"`
+`"D_id dispositivo_W"`
 Serve al dispositivo per scrivere gli eventuali output che il nostro `"Umano"` dovrà ricevere.

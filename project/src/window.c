@@ -13,6 +13,7 @@ MSG_WINDOW_GETINFO = 610004
 
 //Funzione Window
 void window(int id, int recupero, char * nome){
+  signal(SIGCHLD, SIG_IGN); //evita che vengono creati processi zombie quando processi figli eseguono exit
   int status = FALSE;
   time_t t_start = 0; //Tempo per il quale è rimasta aperta
   char * name = strdup(nome);
@@ -42,6 +43,8 @@ void window(int id, int recupero, char * nome){
       protocoll_parser(messaggio.msg_text, &msg);
       status = atoi(msg[WINDOW_REC_STATO]);
       t_start = atoi(msg[WINDOW_REC_TSTART]);
+      name = (char *) malloc (sizeof(char) * (strlen(msg[WINDOW_REC_NOME]) + 1));
+      strcpy(name, msg[WINDOW_REC_NOME]);
     }
   }
 
@@ -213,7 +216,7 @@ void window(int id, int recupero, char * nome){
         crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_WINDOW);
         concat_int(&rec_buf, WINDOW);
         concat_int(&rec_buf, id);
-        concat_dati_window(&rec_buf, status, t_start);
+        concat_dati_window(&rec_buf, status, t_start, name);
         msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
         exit(EXIT_SUCCESS);
       }
@@ -237,7 +240,7 @@ void window(int id, int recupero, char * nome){
             crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_WINDOW);
             concat_int(&rec_buf, WINDOW);
             concat_int(&rec_buf, id);
-            concat_dati_window(&rec_buf, status, t_start);
+            concat_dati_window(&rec_buf, status, t_start, name);
             msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
             printf("Window: Dati salvati per il recupero, invio aggiungi al deposito e termino\n");
             crea_messaggio_base(&tmp_buf, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_AGGIUNGI); //il deposito deve aggiungere un nuovo frigo
@@ -251,7 +254,7 @@ void window(int id, int recupero, char * nome){
             crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_WINDOW);
             concat_int(&rec_buf, WINDOW);
             concat_int(&rec_buf, id);
-            concat_dati_window(&rec_buf, status, t_start);
+            concat_dati_window(&rec_buf, status, t_start, name);
             msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
             exit(EXIT_SUCCESS);
           }
@@ -308,16 +311,18 @@ void window(int id, int recupero, char * nome){
   }
 }
 
-void concat_dati_window(msgbuf * m, int s, time_t t){
+void concat_dati_window(msgbuf * m, int s, time_t t, char * nw){
   char * st;
   itoa(s, &st);
   char * tt;
   itoa(t, &tt);
-  char * r = (char *) malloc(sizeof(char) * (strlen(m->msg_text) + strlen(st) + 1 + strlen(tt) + 2));
+  char * r = (char *) malloc(sizeof(char) * (strlen(m->msg_text) + strlen(st) + 1 + strlen(tt) + 1 + strlen(nw) + 2));
   strcpy(r,m->msg_text);
   strcat(r,st);
   strcat(r,"\n");
   strcat(r,tt);
+  strcat(r,"\n");
+  strcat(r,nw);
   strcat(r,"\n");
   strcpy(m->msg_text,r);
 
