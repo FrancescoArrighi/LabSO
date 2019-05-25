@@ -184,6 +184,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
       printf("Cod %d\n", atoi(msg[MSG_OP]));
 
       if(codice == MSG_INF && controllo_bulb(msg,id)) { //richiesta info
+        printf("Bulb: Richiesta info\n");
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_BULB);
         concat_string(&risposta, msg[MSG_ID_MITTENTE]); //concat id padre
         concat_string(&risposta, name);
@@ -201,6 +202,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
       }
 
       else if(codice == MSG_OVERRIDE && controllo_bulb(msg, id)){
+        printf("Bulb: Messaggio di override\n");
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_BULB);
         concat_string(&risposta, msg[MSG_ID_MITTENTE]); //concat id padre
         concat_string(&risposta, name);
@@ -212,6 +214,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
       }
 
       else if(codice == MSG_SALVA_SPEGNI && controllo_bulb(msg, id)){
+        printf("Bulb: Sto salvando i dati\n");
         crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_BULB);
         concat_int(&rec_buf, BULB);
         concat_int(&rec_buf, id);
@@ -221,6 +224,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
       }
 
       else if(codice == MSG_SPEGNI && controllo_bulb(msg, id)){
+        printf("Bulb: Spegnimento\n");
         if(idf > 0){
           kill(idf, SIGTERM);
         }
@@ -228,9 +232,11 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
       }
 
       else if(codice == MSG_RIMUOVIFIGLIO && controllo_bulb(msg, id)){
+        printf("Bulb: ricevuto messaggio rimuovi figlio\n");
         int queue_deposito;
         crea_queue(DEPOSITO, &queue_deposito);
         if(id == atoi(msg[MSG_RIMUOVIFIGLIO_ID])){ //se sono io
+          printf("Bulb: Sono io il figlio da eliminare\n");
           crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
           risposta.msg_type = 2;
           msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
@@ -240,6 +246,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
             concat_int(&rec_buf, id);
             concat_dati_bulb(&rec_buf, status, interruttore, t_start, name);
             msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
+            printf("Bulb: Dati salvati per il recupero, invio aggiungi al deposito e termino\n");
             crea_messaggio_base(&tmp_buf, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_AGGIUNGI); //il deposito deve aggiungere un nuovo frigo
             concat_int(&tmp_buf, id); // con mio stesso id
             tmp_buf.msg_type = NUOVA_OPERAZIONE;
@@ -247,6 +254,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
             exit(EXIT_SUCCESS); //termino processo
           }
           else if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_SALVA){ //se devo solo salvarmi
+            printf("Bulb: salvo i dati\n");
             crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_BULB);
             concat_int(&rec_buf, BULB);
             concat_int(&rec_buf, id);
@@ -255,6 +263,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
             exit(EXIT_SUCCESS);
           }
           else if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEL){ //se devo solo terminare
+            printf("Bulb: termino\n");
             if(idf >= 0){
               kill(idf, SIGTERM); //termino eventuale figlio che gestisce fifo
             }
@@ -262,6 +271,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
           }
         }
         else{ // se disp da eliminare non sono io, mando un ACKN
+          printf("Bulb: non sono il dispositivo da eliminare\n");
           crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
           risposta.msg_type = 2;
           msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
