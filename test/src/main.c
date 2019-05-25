@@ -405,8 +405,19 @@ void controller(int myid, int id_deposito){
             list(cmd, n, figli, my_queue, queue_deposito);;
           }
           else if(strcmp(cmd[0], "add") == 0){
+            int flag = TRUE;
+            int q;
+            key_t key;
+
+            while(flag){
+              next_id++;
+              if((key = ftok("/tmp/domotica.txt", id)) != -1){ // crea la chiave
+                if( (q = msgget(key, IPC_CREAT | IPC_EXCL)) != -1){ // crea il file se non esiste
+                    flag = FALSE;
+                }
+              }
+            }
             add(cmd, n, queue_deposito, next_id);
-            next_id++;
           }
           else if(strcmp(cmd[0], "del") == 0){
             del(cmd, n, figli, my_queue, queue_deposito);
