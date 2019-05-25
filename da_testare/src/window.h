@@ -8,8 +8,6 @@
 //Operazioni di una Window
 #define MSG_WINDOW_OPEN 610001
 #define MSG_WINDOW_CLOSE 610002
-#define MSG_WINDOW_GETTIME 610003
-#define MSG_WINDOW_GETINFO 610004
 
 //Campi per Info
 #define WINDOW_INF_NOME 6 // Subito dopo l'id Padre

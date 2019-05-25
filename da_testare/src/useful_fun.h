@@ -4,6 +4,8 @@
 #ifndef USEFUL_FUN_H
 #define  USEFUL_FUN_H
 
+#define MSG_GETTIME 10003
+
 void rimuovi_maiuscole(char * str);
 
 //ritorna TRUE o FAlSE in base se è riuscito o meno a leggere l'integer

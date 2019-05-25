@@ -4,12 +4,11 @@
 /*Operazioni di una Bulb
 MSG_BULB_SWITCH_S = 510001
 MSG_BULB_SWITCH_I = 510002
-MSG_BULB_GETTIME  = 510003
-MSG_BULB_GETINFO  = 510004
+MSG_GETTIME       = 10003
 */
 
-/* Funzione Bulb */
-void bulb(int id, int recupero, char * nome){ //recupero booleano
+//Funzione che inizializza una bulb ricevendo un id un un bool per eventuale recupero ed un nome
+void bulb(int id, int recupero, char * nome){
   signal(SIGCHLD, SIG_IGN); //evita che vengono creati processi zombie quando processi figli eseguono exit
   int status = FALSE;
   int interruttore = FALSE;
@@ -33,7 +32,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
 
   char ** msg;
 
-  if(recupero == TRUE){
+  if(recupero == TRUE){ //Gestisco il recupero di una bulb
      if((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 10, 0)) == -1) {
         printf("errore lettura ripristino\n");
     }
@@ -55,7 +54,6 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
   else if(idf == 0){ //Creo un processo figlio per leggere da input
     printf("Inizio comunicazione\n"); //Lettura da input
     int fd_write, fd_read, n_arg;
-    int richiesta = 0;
     char buf_r[BUF_SIZE];
     char buf_w[BUF_SIZE];
     char * str;
@@ -64,58 +62,46 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
     char * wfifo = percorso_file(id,WRITE);
     flag = TRUE;
 
-    if((mkfifo(wfifo, 0666) == -1) && (errno != EEXIST)){ //se path esiste già continuo normalmente
+    if((mkfifo(wfifo, 0666) == -1) && (errno != EEXIST)){ //Controllo la corretta creazione della fifo di scrittura
       perror("Errore mkfifo");
       exit(1);
     }
-    if((mkfifo(rfifo, 0666) == -1) && (errno != EEXIST)){
+    if((mkfifo(rfifo, 0666) == -1) && (errno != EEXIST)){ //Controllo la corretta creazione della fifo di lettura
       perror("Errore mkfifo");
       exit(1);
     }
 
     while (flag) {
       printf("----Inizio lettura -----\n");
-      richiesta = -1;
       fd_read = open(rfifo, O_RDONLY);
       printf("Pronta per leggere\n");
       read(fd_read, buf_r, BUF_SIZE); // Leggo dalla FIFO
       printf("Ho letto il comando\n");
       printf("CMD : %s\n", buf_r);
       n_arg = str_split(buf_r, &cmd); // Numero di argomenti passati
+      int c_umano = codice_messaggio(cmd);
 
-      if(strcmp(cmd[1], "chiuditi") == 0){ // se il comando inserito è close esco
-        printf("Fine comunicazione\n");
-        flag = FALSE;
-        //kill(getpid(),SIGTERM); //Io ucciderei il processo qua
-      }
-      else if (n_arg == 2){ //Accetto comandi del interruttore
-        if(strcmp(cmd[1], "interruttore") == 0){
+      if (c_umano > 0){ //Agisco solo se il codice non è un ack negativo
+        if(c_umano == MSG_BULB_SWITCH_I){
           crea_messaggio_base(&tmp_buf, BULB, BULB, id, id, MSG_BULB_SWITCH_I);
           tmp_buf.msg_type = NUOVA_OPERAZIONE;
           msgsnd(queue, &tmp_buf, sizeof(tmp_buf.msg_text), 0);
         }
-        else {
-          printf("Operazione non valida\n");
-        }
 
-      }
-      else if((n_arg == 3) && (strcmp(cmd[1], "get") == 0)){
-        if(strcmp(cmd[2], "time") == 0){
-          crea_messaggio_base(&tmp_buf, BULB, BULB, id, id, MSG_BULB_GETTIME);
-          tmp_buf.msg_type = NUOVA_OPERAZIONE;
-          msgsnd(queue, &tmp_buf, sizeof(tmp_buf.msg_text), 0);
-          richiesta = MSG_BULB_GETTIME;
-        }
-        else if(strcmp(cmd[2], "info") == 0){
-          crea_messaggio_base(&tmp_buf, BULB, BULB, id, id, MSG_INF);
-          tmp_buf.msg_type = NUOVA_OPERAZIONE;
-          msgsnd(queue, &tmp_buf, sizeof(tmp_buf.msg_text), 0);
-          richiesta = MSG_INF;
-        }
+        else if((c_umano == MSG_GETTIME) || (c_umano == MSG_INF)) { //Gestisco la parte che necessita di una risposta
+          if(c_umano == MSG_GETTIME){
+            crea_messaggio_base(&tmp_buf, BULB, BULB, id, id, MSG_GETTIME);
+            tmp_buf.msg_type = NUOVA_OPERAZIONE;
+            msgsnd(queue, &tmp_buf, sizeof(tmp_buf.msg_text), 0);
+          }
+          else if(c_umano == MSG_INF){
+            crea_messaggio_base(&tmp_buf, BULB, BULB, id, id, MSG_INF);
+            tmp_buf.msg_type = NUOVA_OPERAZIONE;
+            msgsnd(queue, &tmp_buf, sizeof(tmp_buf.msg_text), 0);
+          }
 
-        fd_write = open(wfifo, O_WRONLY); //apro fifo di scrittura
+          fd_write = open(wfifo, O_WRONLY); //apro fifo di scrittura
 
-        if(richiesta > 0) { //quando ricevo la risposta
           msgrcv(queue, &messaggio,sizeof(messaggio.msg_text), MSG_FIFO, 0);
           printf("Bulb fifo: Ricevuta risposta\n");
           char **info_response;
@@ -123,10 +109,9 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
           protocoll_parser(messaggio.msg_text, &info_response);
           memset(buf_w, 0, sizeof(buf_w)); //pulisco buf_w
           //concateno i dati ricevuti
-          printf("Codice richiesta: %d\n", richiesta);
-          if ((richiesta == MSG_INF) && codice_messaggio(info_response) == MSG_INF_BULB) {
+          if ((c_umano == MSG_INF) && (codice_messaggio(info_response) == MSG_INF_BULB)) {
             printf("Bulb fifo: Info\n");
-            sprintf(str_temp, "\nNome: %s\n", info_response[BULB_INF_NOME]);
+            sprintf(str_temp, "\nNome[BULB]: %s\n", info_response[BULB_INF_NOME]);
             strcpy(buf_w, str_temp);
             sprintf(str_temp, "Id: %s\n", info_response[MSG_ID_MITTENTE]);
             strcat(buf_w, str_temp);
@@ -139,7 +124,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
             write(fd_write, buf_w, strlen(buf_w)+1); //srivo su fifo buf_w
 
           }
-          else if (richiesta == MSG_BULB_GETTIME) {
+          else if (c_umano == MSG_GETTIME) {
             printf("Bulb fifo: Get Time\n");
             sprintf(str_temp, "\nTempo di utilizzo: %s\n", info_response[BULB_TIME]);
             strcpy(buf_w, str_temp);
@@ -150,15 +135,12 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
             strcpy(buf_w, str_temp);
             write(fd_write, buf_w, strlen(buf_w)+1); //srivo su fifo buf_w
           }
-          richiesta = -1;
           printf("Scrivo su fifo: %s\n", buf_w);
         }
-        else {
-          strcpy(buf_w, "Questa operazione non ci concerne");
-          write(fd_write, buf_w, strlen(buf_w)+1);
-        }
       }
-
+      else {
+        printf("Operazione non valida\n");
+      }
       close(fd_read);
       printf("File in lettura è stato chiuso\n");
       close(fd_write);
@@ -175,16 +157,14 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
 
     //Inizio Loop
     while (TRUE) {
-      printf("Bulb: Pronta per ricevere \n");
       msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), NUOVA_OPERAZIONE, 0);
       protocoll_parser(messaggio.msg_text, &msg);
       int codice = codice_messaggio(msg);
       crea_queue(atoi(msg[MSG_ID_MITTENTE]), & q_ris);
-      printf("Bulb ha ricevuto\n");
-      printf("Cod %d\n", atoi(msg[MSG_OP]));
+      //printf("Bulb ha ricevuto\n");
+      //printf("Cod %d\n", atoi(msg[MSG_OP]));
 
       if(codice == MSG_INF && controllo_bulb(msg,id)) { //richiesta info
-        printf("Bulb: Richiesta info\n");
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_BULB);
         concat_string(&risposta, msg[MSG_ID_MITTENTE]); //concat id padre
         concat_string(&risposta, name);
@@ -201,8 +181,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
         }
       }
 
-      else if(codice == MSG_OVERRIDE && controllo_bulb(msg, id)){
-        printf("Bulb: Messaggio di override\n");
+      else if(codice == MSG_OVERRIDE && controllo_bulb(msg, id)){ // Controllo di override
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_BULB);
         concat_string(&risposta, msg[MSG_ID_MITTENTE]); //concat id padre
         concat_string(&risposta, name);
@@ -213,8 +192,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
         msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
 
-      else if(codice == MSG_SALVA_SPEGNI && controllo_bulb(msg, id)){
-        printf("Bulb: Sto salvando i dati\n");
+      else if(codice == MSG_SALVA_SPEGNI && controllo_bulb(msg, id)){ //Salvo i dati per un recupero
         crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_BULB);
         concat_int(&rec_buf, BULB);
         concat_int(&rec_buf, id);
@@ -223,38 +201,33 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
         exit(EXIT_SUCCESS);
       }
 
-      else if(codice == MSG_SPEGNI && controllo_bulb(msg, id)){
-        printf("Bulb: Spegnimento\n");
+      else if(codice == MSG_SPEGNI && controllo_bulb(msg, id)){ //Spengo tutto e uccido anche il sottoprocesso che legge da umano
         if(idf > 0){
           kill(idf, SIGTERM);
         }
         exit(EXIT_SUCCESS);
       }
 
-      else if(codice == MSG_RIMUOVIFIGLIO && controllo_bulb(msg, id)){
-        printf("Bulb: ricevuto messaggio rimuovi figlio\n");
+      else if(codice == MSG_RIMUOVIFIGLIO && controllo_bulb(msg, id)){ //Gestisco la ricezione di un messaggio di rimuovi figlio
         int queue_deposito;
         crea_queue(DEPOSITO, &queue_deposito);
         if(id == atoi(msg[MSG_RIMUOVIFIGLIO_ID])){ //se sono io
-          printf("Bulb: Sono io il figlio da eliminare\n");
           crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
           risposta.msg_type = 2;
           msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
-          if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEP){ //se la specifica è SPEC_DEP
+          if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEP){ //se la specifica è SPEC_DEP - salvo dati
             crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_BULB);
             concat_int(&rec_buf, BULB);
             concat_int(&rec_buf, id);
             concat_dati_bulb(&rec_buf, status, interruttore, t_start, name);
             msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
-            printf("Bulb: Dati salvati per il recupero, invio aggiungi al deposito e termino\n");
-            crea_messaggio_base(&tmp_buf, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_AGGIUNGI); //il deposito deve aggiungere un nuovo frigo
+            crea_messaggio_base(&tmp_buf, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_AGGIUNGI); //il deposito deve aggiungere una nuova bulb
             concat_int(&tmp_buf, id); // con mio stesso id
             tmp_buf.msg_type = NUOVA_OPERAZIONE;
             msgsnd(queue_deposito, &tmp_buf, sizeof(tmp_buf.msg_text), 0);
             exit(EXIT_SUCCESS); //termino processo
           }
           else if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_SALVA){ //se devo solo salvarmi
-            printf("Bulb: salvo i dati\n");
             crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_BULB);
             concat_int(&rec_buf, BULB);
             concat_int(&rec_buf, id);
@@ -263,7 +236,6 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
             exit(EXIT_SUCCESS);
           }
           else if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEL){ //se devo solo terminare
-            printf("Bulb: termino\n");
             if(idf >= 0){
               kill(idf, SIGTERM); //termino eventuale figlio che gestisce fifo
             }
@@ -271,49 +243,54 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
           }
         }
         else{ // se disp da eliminare non sono io, mando un ACKN
-          printf("Bulb: non sono il dispositivo da eliminare\n");
           crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
           risposta.msg_type = 2;
           msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
         }
       }
 
-      else if(codice == MSG_GET_TERMINAL_TYPE && controllo_bulb(msg, id)){
+      else if(codice == MSG_GET_TERMINAL_TYPE && controllo_bulb(msg, id)){ //Invio il mio tipo
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_MYTYPE);
         concat_int(&risposta, BULB);
         risposta.msg_type = 2;
         msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
 
-      else if(codice == MSG_BULB_SWITCH_S && controllo_bulb(msg, id)){
+      else if(codice == MSG_BULB_SWITCH_S && controllo_bulb(msg, id)){ //Inverto il mio stato
         inverti_stato(&status, &interruttore, &t_start);
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
         risposta.msg_type = 2;
         msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
 
-      else if(codice == MSG_BULB_SWITCH_I && controllo_bulb(msg, id)){
+      else if(codice == MSG_BULB_SWITCH_I && controllo_bulb(msg, id)){ //Inverto il mio interruttore
         inverti_interruttore(&status, &interruttore, &t_start);
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
         risposta.msg_type = 2;
         msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
 
-      else if(codice == MSG_BULB_GETTIME && controllo_bulb(msg, id)){
+      else if(codice == MSG_GETTIME && controllo_bulb(msg, id)){ //Rispondo ad una richiesta di Tempo d'utilizzo(solo umano)
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
         concat_int(&risposta, tempo_bulb_on(status, t_start));
         risposta.msg_type = MSG_FIFO;
         msgsnd(queue, &risposta, sizeof(risposta.msg_text), 0);
       }
-      else if(codice == MSG_AGGIUNGI && controllo_bulb(msg, id)){
+      else if(codice == MSG_AGGIUNGI && controllo_bulb(msg, id)){//Ad un messaggio di tipo aggiungi rispondo con ack negativo
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
         risposta.msg_type = 2;
         msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
-      else{
+      else{ //Per qualsiasi altro messaggio rispondo con ack negativo
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
-        risposta.msg_type = 2;
-        msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
+        if(atoi(msg[MSG_ID_MITTENTE]) == id){
+          risposta.msg_type = MSG_FIFO;
+          msgsnd(queue, &risposta, sizeof(risposta.msg_text), 0); //mando un messaggio alla fifo
+        }
+        else{
+          risposta.msg_type = 2;
+          msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
+        }
       }
     }
   }
@@ -359,7 +336,7 @@ int controllo_bulb(char ** str, int id){
 void inverti_interruttore(int * s, int * i, time_t *t) {
   if ((*i) == FALSE) {
     (*i) = TRUE;
-    if(!(*s)){
+    if((*s) == FALSE){
       (*s) = TRUE;
       (*t) = time(NULL);
     }
@@ -399,6 +376,8 @@ int tempo_bulb_on(int s, time_t t) {
   return res;
 }
 
+//Funzione che confronta due messaggi di con le info dei Bulb
+//Ritorna false se sono diverse lo stato o l'interruttore
 int equal_bulb(msgbuf * msg1, msgbuf * msg2){
   printf("Bulb: confronto in corso\n");
   int rt = FALSE;
@@ -415,8 +394,8 @@ int equal_bulb(msgbuf * msg1, msgbuf * msg2){
 
   return rt;
 }
-//msgctl( queue, IPC_RMID, 0); - Serve a svuotare la queue
 
+//Funzioni per la stampa delle info bulb
 int stampa_info_bulb(msgbuf * m){
   int r = FALSE;
   char ** msg;
@@ -431,6 +410,29 @@ int stampa_info_bulb(msgbuf * m){
     printf("| \\ \n");
     printf("\n---------------------------------- \n\n");
     r = TRUE;
+  }
+  return r;
+}
+
+int leggi_info_bulb(msgbuf * m) {
+  int r = FALSE;
+  char ** ris;
+  char tmp[100];
+  char stampa[BUF_SIZE];
+  protocoll_parser(m->msg_text, &ris);
+
+  if ((codice_messaggio(ris) == MSG_INF_BULB) && ((atoi(ris[MSG_TYPE_MITTENTE]) == BULB) || (atoi(ris[MSG_TYPE_MITTENTE]) == DEFAULT))) {
+    sprintf(tmp, "%s[BULB] : %s\n", ris[BULB_INF_NOME], ris[MSG_ID_MITTENTE]);
+    strcpy(stampa, tmp);
+    sprintf(tmp, "| Stato : %s\n", ris[BULB_INF_STATO]);
+    strcat(stampa, tmp);
+    sprintf(tmp, "| Interruttore : %s\n", ris[BULB_INF_INTERRUTTORE]);
+    strcat(stampa, tmp);
+    sprintf(tmp, "| Tempo di utilizzo : %s\n", ris[BULB_INF_TIME]);
+    strcat(stampa, tmp);
+    strcat(stampa, "| \\");
+    r = TRUE;
+    printf("\ninfo bulb:\n---------------------------------- \n%s\n----------------------------------\n",stampa);
   }
   return r;
 }

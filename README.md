@@ -22,6 +22,9 @@ I messaggi mandati dai dispositivi di controllo attraversano tutto l'albero dell
 Per la creazione di questo protocollo ci siamo ispirati ai protocolli utilizzati nelle reti.
 
 ### Dispositivi di controllo
+I dispositivi di controllo mandano in broadcast a tutte le `messagequeue` dei propri figli, attraverso l'uso di ACK negativi e positivi i dispositivi di controllo gestiscono la ricezione dei messaggi.
+
+Ad esempio se ho un hub "10" con 2 figli hub e uno di loro ha sotto di lui altri 3 figli, un messaggio indirizzato all'hub "10" prima raggiunge l'hub attraversando l'intero albero delle gerarchie e viene individuato perchè è l'unico che risponde con un ACK positivo. Dopo essere stato individuato esso genera due messaggi per i due figli, e si aspetta conseguentemente 2 risposte. Uno dei figli risponde con un semplice ACK positivo quindi il contatore di risposte dell' hub "10" diminuisce ad 1, l'altro hub sotto l'hub "10" risponde informandolo del numero dei suoi figli = 3. Il contatore delle risposte aumenta dunque a 4 e non diminuirà finchè tutti i figli dell'ultimo hub non abbiano mandato un ACK di risposta all'hub "10".
 
 #### Controller:
 #### Hub:
@@ -47,18 +50,18 @@ La nostra finestra può essere aperta o chiusa con due interruttori uno per l'ap
 
 La sua inizializzazione `window(int id, int recupero, char * nome)` avviene con un determinato id, un booleano che serve a un eventuale "Recupero stato della Finestra" e una stringa con il nome "Window".
 
-L'umano può interagire con la lampadina nei seguenti modi:
+L'umano può interagire con la finestra nei seguenti modi:
 - `open`: Controlla che la finestra non sia già aprta e nel caso sia chiusa l'apre e inizializza il tempo di inizio d'utilizzo a 0.
 - `close`: Chiude la finestra.
 - `get info`: Chiede le info e viene stampato l'id del dispositivo, lo stato della lampadina e il tempo di utilizzo.
 - `get time`: Chiede il tempo di utilizzo alla finestra e viene stampato.
 
 #### Fridge:
-Il nostro frigerifero può essere aperto o chiuso con un singolo pulsante. Si richiude automaticamente dopo un tempo che può essere variato. Una “percentuale di riempimento” indica quanto contenuto c’è all’interno (0%-100%): è possibile togliere o aggiungere contenuto solo “manualmente”. Un termostato/termometro permette di gestire e impostare la temperatura interna (0°-7°).
+Il nostro frigorifero può essere aperto o chiuso con un singolo pulsante. Si richiude automaticamente dopo un tempo che può essere variato. Una “percentuale di riempimento” indica quanto contenuto c’è all’interno (0%-100%): è possibile togliere o aggiungere contenuto solo “manualmente”. Un termostato/termometro permette di gestire e impostare la temperatura interna (0°-7°).
 
 La sua inizializzazione `fridge(int id, int recupero, char * nome)` avviene con un determinato id, un booleano che serve a un eventuale "Recupero stato del Frigorifero" e una stringa con il nome "Fridge".
 
-L'umano può interagire con la lampadina nei seguenti modi:
+L'umano può interagire con il frigorifero nei seguenti modi:
 
 - `set`: il quarto parametro è il valore da impostare
   - `interruttore`: con valore 1 viene aperto il frigo, mentre 0 chiude il frigo.

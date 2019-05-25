@@ -8,8 +8,6 @@
 //Operazioni di una Bulb
 #define MSG_BULB_SWITCH_S 510001
 #define MSG_BULB_SWITCH_I 510002
-#define MSG_BULB_GETTIME 510003
-#define MSG_BULB_GETINFO 510004
 
 //Campi per Info
 #define BULB_INF_NOME 6 // Subito dopo l'id Padre
@@ -34,5 +32,4 @@ void inverti_stato(int * s, int * i, time_t *t);
 int tempo_bulb_on(int s, time_t t);
 int equal_bulb(msgbuf * msg1, msgbuf * msg2);
 int stampa_info_bulb(msgbuf * m);
-
 #endif
