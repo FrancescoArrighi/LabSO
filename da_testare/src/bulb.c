@@ -221,7 +221,7 @@ void bulb(int id, int recupero, char * nome){
             concat_int(&rec_buf, id);
             concat_dati_bulb(&rec_buf, status, interruttore, t_start, name);
             msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
-            crea_messaggio_base(&tmp_buf, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_AGGIUNGI); //il deposito deve aggiungere una nuova bulb
+            crea_messaggio_base(&tmp_buf, DEPOSITO, BULB, DEPOSITO, id, MSG_AGGIUNGI); //il deposito deve aggiungere una nuova bulb
             concat_int(&tmp_buf, id); // con mio stesso id
             tmp_buf.msg_type = NUOVA_OPERAZIONE;
             msgsnd(queue_deposito, &tmp_buf, sizeof(tmp_buf.msg_text), 0);

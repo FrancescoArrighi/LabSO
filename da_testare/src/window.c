@@ -216,14 +216,13 @@ void window(int id, int recupero, char * nome){
             concat_int(&rec_buf, id);
             concat_dati_window(&rec_buf, status, t_start, name);
             msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
-            crea_messaggio_base(&tmp_buf, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_AGGIUNGI); //il deposito deve aggiungere una nuova window
+            crea_messaggio_base(&tmp_buf, DEPOSITO, WINDOW, DEPOSITO, id, MSG_AGGIUNGI); //il deposito deve aggiungere una nuova window
             concat_int(&tmp_buf, id); // con mio stesso id
             tmp_buf.msg_type = NUOVA_OPERAZIONE;
             msgsnd(queue_deposito, &tmp_buf, sizeof(tmp_buf.msg_text), 0);
             exit(EXIT_SUCCESS); //termino processo
           }
           else if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_SALVA){ //se devo solo salvarmi
-            printf("Window: salvo i dati\n");
             crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_WINDOW);
             concat_int(&rec_buf, WINDOW);
             concat_int(&rec_buf, id);
@@ -232,7 +231,6 @@ void window(int id, int recupero, char * nome){
             exit(EXIT_SUCCESS);
           }
           else if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEL){ //se devo solo terminare
-            printf("Window: termino\n");
             if(idf >= 0){
               kill(idf, SIGTERM); //termino eventuale figlio che gestisce fifo
             }
@@ -240,7 +238,6 @@ void window(int id, int recupero, char * nome){
           }
         }
         else{ // se disp da eliminare non sono io, mando un ACKN
-          printf("Window: non sono il dispositivo da eliminare\n");
           crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
           risposta.msg_type = 2;
           msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
