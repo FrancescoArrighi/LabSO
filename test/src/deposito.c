@@ -253,13 +253,13 @@ void deposito(int id, int id_controller){
       }
       else if(new_type == WINDOW){
         if(fork() == 0){
-          window(new_id, FALSE, "Windowina");
+          window(new_id, FALSE, "Windowine");
           exit(0);
         }
       }
       else if(new_type == FRIDGE){
         if(fork() == 0){
-          //timer();
+          fridge(new_id, FALSE, "Frighetto");
           exit(0);
         }
       }
