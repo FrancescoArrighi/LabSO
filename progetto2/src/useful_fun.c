@@ -294,11 +294,7 @@ void recupero_in_cascata(int queue){
   char ** msg;
   msgbuf messaggio;
   //printf("tasso1\n");
-  if((msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 10, 0)) == -1) {
-     printf("errore lettura ripristino\n");
-  }
-  else{
-    printf("recupero\n");
+  if(leggi(queue, &messaggio, 10, 2)){
     protocoll_parser(messaggio.msg_text, &msg);
     //printf("tasso3\n");
     int type = atoi(msg[MSG_RECUPERO_TYPE]);
@@ -337,9 +333,10 @@ void recupero_in_cascata(int queue){
         exit(0);
       }
     }
-    //printf("tasso7\n");
   }
-  printf("fine recupero\n");
+  else{
+    printf("errore ripristino\n");
+  }
 }
 
 int leggi(int queue, msgbuf * messaggio, int p, float t){

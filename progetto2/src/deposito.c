@@ -21,7 +21,7 @@ void deposito(int id, int id_controller){
     svuota_msg_queue(queue, 2);
     msg_type = messaggio.msg_type;
     protocoll_parser(messaggio.msg_text, &msg);
-    printf("mit: %d - op: %d - dest: %s\n", atoi(msg[MSG_ID_MITTENTE]), atoi(msg[MSG_OP]), msg[MSG_ID_DESTINATARIO]);
+    //printf("mit: %d - op: %d - dest: %s\n", atoi(msg[MSG_ID_MITTENTE]), atoi(msg[MSG_OP]), msg[MSG_ID_DESTINATARIO]);
     id_dest = atoi(msg[MSG_ID_DESTINATARIO]);
     mesg_non_supp = FALSE;
     flag_rimuovi = FALSE;
@@ -170,7 +170,7 @@ void deposito(int id, int id_controller){
     }
     else if(codice_messaggio(msg) == MSG_AGGIUNGI){
       if(id_dest == DEFAULT || id_dest == id){
-        printf("aggiungo %d, per ordine di %d\n", atoi(msg[MSG_AGGIUNGI_IDF]), atoi(msg[MSG_ID_MITTENTE]));
+        //printf("aggiungo %d, per ordine di %d\n", atoi(msg[MSG_AGGIUNGI_IDF]), atoi(msg[MSG_ID_MITTENTE]));
         int q_nf;
         crea_queue(atoi(msg[MSG_AGGIUNGI_IDF]), &q_nf);
 
@@ -232,6 +232,8 @@ void deposito(int id, int id_controller){
       int new_id = atoi(msg[MSG_ADD_DEVICE_ID]);
       crea_queue(new_id, &q_nf);
 
+      insert_int(q_nf, 0, figli);
+
       if(new_type == HUB){
         if(fork() == 0){
           hub(new_id, FALSE, "hub");
@@ -263,7 +265,6 @@ void deposito(int id, int id_controller){
           exit(0);
         }
       }
-      insert_int(q_nf, 0, figli);
     }
     else if(codice_messaggio(msg) == MSG_GET_TERMINAL_TYPE ){
         msgbuf richiesta_figli;
@@ -306,7 +307,7 @@ void deposito(int id, int id_controller){
       }
     else if(codice_messaggio(msg) == MSG_DEPOSITO_DEL){
       int q, i, temp_int, flag = TRUE;
-      printf("eliminato: %s\n", msg[MSG_DEPOSITO_DEL_ID]);
+      //printf("eliminato: %s\n", msg[MSG_DEPOSITO_DEL_ID]);
       crea_queue(atoi(msg[MSG_DEPOSITO_DEL_ID]), &q);
       for(i = 0; i < figli->n && flag; i++){
         if(get_int(i, &temp_int, figli)){

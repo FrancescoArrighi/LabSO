@@ -101,13 +101,7 @@ void hub(int id, int recupero, char * nome){
   int id_dest;
   int mesg_non_supp;
   while ( TRUE) {
-    if(id == 386){
-      printf("come nuovo\n");
-    }
     msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), NUOVA_OPERAZIONE, 0);
-    if(id == 386){
-      printf("/*\n%s\n/*\n", messaggio.msg_text);
-    }
     svuota_msg_queue(queue, 2);
     //printf("hub - %d - pid = %d - riga: %d\n------------------\n%s\n------------------\n", id,getpid(), 100,messaggio.msg_text);
 
@@ -132,19 +126,19 @@ void hub(int id, int recupero, char * nome){
         //controllo override
         msgbuf msg_example;
         if(id == 386){
-          printf("inizio overflow\n");
+          //printf("inizio overflow\n");
         }
         //concat_int(&risposta, override(figli, type_child,id,queue,&msg_example));
         concat_int(&risposta, 0);
         if(id == 386){
-          printf("fine\n");
+          //printf("fine\n");
         }
         //invio la risposta
         int msg_queue_mit;
         crea_queue(atoi(msg[MSG_ID_MITTENTE]), &msg_queue_mit);
         msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
         if(id == 386){
-          printf("myinfo/*\n%s\n/*\n", risposta.msg_text);
+          //printf("myinfo/*\n%s\n/*\n", risposta.msg_text);
         }
         //creo la richiesta di info per i figli
         msgbuf richiesta_figli;
@@ -297,8 +291,6 @@ void hub(int id, int recupero, char * nome){
       //controllo se devo essere rimosso
       if(atoi(msg[MSG_RIMUOVIFIGLIO_ID]) == id){
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
-        risposta.msg_type = 2;
-        msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
         flag_rimuovi = TRUE;
 
         if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEP){
@@ -308,18 +300,12 @@ void hub(int id, int recupero, char * nome){
           concat_int(&msg_deposito, id);
           int q_dep;
           crea_queue(DEPOSITO, &q_dep);
-          printf("id rimuovi salva: %s\n", msg[MSG_ID_MITTENTE]);
           msgsnd(q_dep, &msg_deposito, sizeof(msg_deposito.msg_text), 0);
-        }
-        else{
-          printf("id NON salva: %s\n", msg[MSG_ID_MITTENTE]);
         }
       }
       else{
 
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
-        risposta.msg_type = 2;
-        msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
 
 
         msgbuf richiesta_figli;
@@ -356,6 +342,8 @@ void hub(int id, int recupero, char * nome){
           }
         }
       }
+      risposta.msg_type = 2;
+      msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
     }
     else if(codice_messaggio(msg) == MSG_AGGIUNGI){
       if(id_dest == DEFAULT || id_dest == id){
@@ -455,7 +443,7 @@ void hub(int id, int recupero, char * nome){
           msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
         }
       }
-      printf("stato iniziale %d\n", id );
+      //printf("stato iniziale %d\n", id );
     }
     else if(codice_messaggio(msg) == MSG_GET_TERMINAL_TYPE ){
       if(id_dest == DEFAULT || id_dest == id){
@@ -519,7 +507,7 @@ void hub(int id, int recupero, char * nome){
       mesg_non_supp = TRUE;
     }
     if(codice_messaggio(msg) == MSG_SALVA_SPEGNI || codice_messaggio(msg) == MSG_SPEGNI || flag_rimuovi){
-      printf("spengo per %s\n",msg[MSG_ID_MITTENTE] );
+      //printf("spengo per %s\n",msg[MSG_ID_MITTENTE] );
       mesg_non_supp = FALSE;
       if(id_dest == DEFAULT || id_dest == id || flag_rimuovi){
         msgbuf msg_salva;
@@ -527,7 +515,7 @@ void hub(int id, int recupero, char * nome){
 
         //creo il messaggio di ripristino
         if( codice_messaggio(msg) == MSG_SALVA_SPEGNI || ( codice_messaggio(msg) == MSG_RIMUOVIFIGLIO && (atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_SALVA || atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEP ) ) ) {
-          printf ("====> %d\n",codice_messaggio(msg));
+          //printf("====> %d\n",codice_messaggio(msg));
           crea_messaggio_base(&msg_salva, HUB, HUB, id, id, MSG_RECUPERO_HUB);
           concat_int(&msg_salva, HUB);
           concat_int(&msg_salva, id);
