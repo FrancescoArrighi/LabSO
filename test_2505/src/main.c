@@ -411,7 +411,7 @@ void controller(int myid, int id_deposito){
 
             while(flag){
               next_id++;
-              if((key = ftok("/tmp/domotica.txt", id)) != -1){ // crea la chiave
+              if((key = ftok("/tmp/domotica.txt", next_id)) != -1){ // crea la chiave
                 if( (q = msgget(key, IPC_CREAT | IPC_EXCL)) != -1){ // crea il file se non esiste
                     flag = FALSE;
                 }

@@ -186,7 +186,6 @@ void window(int id, int recupero, char * nome){
       printf("Cod %d\n", atoi(msg[MSG_OP]));
 
       if(codice == MSG_INF && controllo_window(msg,id)) { //richiesta info
-        printf("Window: Richiesta info\n");
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_WINDOW);
         concat_string(&risposta, msg[MSG_ID_MITTENTE]); //concat id padre
         concat_string(&risposta, name);
@@ -202,7 +201,6 @@ void window(int id, int recupero, char * nome){
         }
       }
       else if(codice == MSG_OVERRIDE && controllo_window(msg, id)){
-        printf("Window: Messaggio di override\n");
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_WINDOW);
         concat_string(&risposta, msg[MSG_ID_MITTENTE]); //concat id padre
         concat_string(&risposta, name);
@@ -212,7 +210,6 @@ void window(int id, int recupero, char * nome){
         msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
       else if(codice == MSG_SALVA_SPEGNI && controllo_window(msg, id)){
-        printf("Window: Sto salvando i dati\n");
         crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_WINDOW);
         concat_int(&rec_buf, WINDOW);
         concat_int(&rec_buf, id);
@@ -221,18 +218,15 @@ void window(int id, int recupero, char * nome){
         exit(EXIT_SUCCESS);
       }
       else if(codice == MSG_SPEGNI && controllo_window(msg, id)){
-        printf("Window: Spegnimento\n");
         if(idf > 0){
           kill(idf, SIGTERM);
         }
         exit(EXIT_SUCCESS);
       }
       else if(codice == MSG_RIMUOVIFIGLIO && controllo_window(msg, id)){
-        printf("Window: ricevuto messaggio rimuovi figlio\n");
         int queue_deposito;
         crea_queue(DEPOSITO, &queue_deposito);
         if(id == atoi(msg[MSG_RIMUOVIFIGLIO_ID])){ //se sono io
-          printf("Window: Sono io il figlio da eliminare\n");
           crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
           risposta.msg_type = 2;
           msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
@@ -242,7 +236,6 @@ void window(int id, int recupero, char * nome){
             concat_int(&rec_buf, id);
             concat_dati_window(&rec_buf, status, t_start, name);
             msgsnd(queue, &rec_buf, sizeof(rec_buf.msg_text), 0);
-            printf("Window: Dati salvati per il recupero, invio aggiungi al deposito e termino\n");
             crea_messaggio_base(&tmp_buf, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_AGGIUNGI); //il deposito deve aggiungere un nuovo frigo
             concat_int(&tmp_buf, id); // con mio stesso id
             tmp_buf.msg_type = NUOVA_OPERAZIONE;
@@ -250,7 +243,6 @@ void window(int id, int recupero, char * nome){
             exit(EXIT_SUCCESS); //termino processo
           }
           else if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_SALVA){ //se devo solo salvarmi
-            printf("Window: salvo i dati\n");
             crea_messaggio_base(&rec_buf, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_RECUPERO_WINDOW);
             concat_int(&rec_buf, WINDOW);
             concat_int(&rec_buf, id);
@@ -259,7 +251,6 @@ void window(int id, int recupero, char * nome){
             exit(EXIT_SUCCESS);
           }
           else if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEL){ //se devo solo terminare
-            printf("Window: termino\n");
             if(idf >= 0){
               kill(idf, SIGTERM); //termino eventuale figlio che gestisce fifo
             }
@@ -267,7 +258,6 @@ void window(int id, int recupero, char * nome){
           }
         }
         else{ // se disp da eliminare non sono io, mando un ACKN
-          printf("Window: non sono il dispositivo da eliminare\n");
           crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), WINDOW, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
           risposta.msg_type = 2;
           msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
