@@ -38,7 +38,7 @@ bulb.o : bulb.h bulb.c
 	$(CC) $(CFLAGS) -c bulb.c
 
 fridge.o : fridge.h fridge.c
-		$(CC) $(CFLAGS) -c fridge.c
+	$(CC) $(CFLAGS) -c fridge.c
 
 clean :
 	@rm $(SRCDIR)/*.o a.out

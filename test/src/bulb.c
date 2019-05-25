@@ -223,7 +223,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
         exit(EXIT_SUCCESS);
       }
 
-      else if(codice_messaggio(msg) == MSG_SPEGNI && controllo_bulb(msg, id)){
+      else if(codice == MSG_SPEGNI && controllo_bulb(msg, id)){
         printf("Bulb: Spegnimento\n");
         if(idf > 0){
           kill(idf, SIGTERM);
@@ -231,7 +231,7 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
         exit(EXIT_SUCCESS);
       }
 
-      else if(codice_messaggio(msg) == MSG_RIMUOVIFIGLIO && controllo_bulb(msg, id)){
+      else if(codice == MSG_RIMUOVIFIGLIO && controllo_bulb(msg, id)){
         printf("Bulb: ricevuto messaggio rimuovi figlio\n");
         int queue_deposito;
         crea_queue(DEPOSITO, &queue_deposito);
@@ -278,34 +278,34 @@ void bulb(int id, int recupero, char * nome){ //recupero booleano
         }
       }
 
-      else if(codice_messaggio(msg) == MSG_GET_TERMINAL_TYPE && controllo_bulb(msg, id)){
+      else if(codice == MSG_GET_TERMINAL_TYPE && controllo_bulb(msg, id)){
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_MYTYPE);
         concat_int(&risposta, BULB);
         risposta.msg_type = 2;
         msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
 
-      else if(codice_messaggio(msg) == MSG_BULB_SWITCH_S && controllo_bulb(msg, id)){
+      else if(codice == MSG_BULB_SWITCH_S && controllo_bulb(msg, id)){
         inverti_stato(&status, &interruttore, &t_start);
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
         risposta.msg_type = 2;
         msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
 
-      else if(codice_messaggio(msg) == MSG_BULB_SWITCH_I && controllo_bulb(msg, id)){
+      else if(codice == MSG_BULB_SWITCH_I && controllo_bulb(msg, id)){
         inverti_interruttore(&status, &interruttore, &t_start);
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
         risposta.msg_type = 2;
         msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);
       }
 
-      else if(codice_messaggio(msg) == MSG_BULB_GETTIME && controllo_bulb(msg, id)){
+      else if(codice == MSG_BULB_GETTIME && controllo_bulb(msg, id)){
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
         concat_int(&risposta, tempo_bulb_on(status, t_start));
         risposta.msg_type = MSG_FIFO;
         msgsnd(queue, &risposta, sizeof(risposta.msg_text), 0);
       }
-      else if(codice_messaggio(msg) == MSG_AGGIUNGI && controllo_bulb(msg, id)){
+      else if(codice == MSG_AGGIUNGI && controllo_bulb(msg, id)){
         crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), BULB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
         risposta.msg_type = 2;
         msgsnd(q_ris, &risposta, sizeof(risposta.msg_text), 0);

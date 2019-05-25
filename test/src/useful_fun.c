@@ -329,7 +329,7 @@ void recupero_in_cascata(int queue){
     }
     else if(type == FRIDGE){
       if(fork() == 0){
-        //fridge(myid, TRUE, "");
+        fridge(myid, TRUE, "");
         exit(0);
       }
     }
