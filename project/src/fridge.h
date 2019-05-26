@@ -10,11 +10,8 @@
 
 //msg info
 //#define MSG_INF_NOME 6
-#define MSG_FRIDGE_INF_STATO 7
 #define MSG_FRIDGE_INF_INTERRUTTORE 8
-#define MSG_FRIDGE_INF_TERM 9
 #define MSG_FRIDGE_INF_TIME 10
-#define MSG_FRIDGE_INF_DELAY 11
 #define MSG_FRIDGE_INF_PERC 12
 
 
@@ -32,7 +29,6 @@
 
 
 //msg cod op
-#define MSG_SETSTATO 001050
 #define MSG_FRIDGE_SETINTERRUTTORE 710003
 #define MSG_FRIDGE_SETTERMOSTATO 710004
 #define MSG_FRIDGE_SETDELAY 710005
@@ -70,5 +66,6 @@ void salva_dati(t_frigo *frigo, time_t t_start, int allarme, int idf); //salva i
 void send_info_fridge(char **msg, t_frigo *frigo); //invia la risposta di info
 int equal_fridge(msgbuf *msg1, msgbuf *msg2);
 void stampa_info_fridge(msgbuf *buf);
+void invia_ackp(int myid, char **msg, int queue_risposta);
 
 #endif

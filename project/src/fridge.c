@@ -9,17 +9,6 @@
   funzioni get sono riservate a fifo
 */
 
-
-void invia_ackp(int myid, char **msg, int queue, int queue_risposta){
-  msgbuf response;
-  crea_messaggio_base(&response, atoi(msg[MSG_TYPE_MITTENTE]), FRIDGE, atoi(msg[MSG_ID_MITTENTE]), myid, MSG_ACKP);
-
-  if(atoi(msg[MSG_ID_MITTENTE]) != myid){
-    response.msg_type = 2;
-    msgsnd(queue_risposta, &response, sizeof(response.msg_text), 0);
-  }
-}
-
 void fridge(int id, int recupero, char *nome){ //recupero booleano
   printf("Inizializzazione frigo\n");
   signal(SIGCHLD, SIG_IGN); //evita che vengono creati processi zombie quando processi figli eseguono exit
@@ -366,29 +355,39 @@ void fridge(int id, int recupero, char *nome){ //recupero booleano
         msgsnd(queue, &fifo_msgbuf, sizeof(fifo_msgbuf.msg_text), 0);
       }
       else if(codice == MSG_SETSTATO && controlla_fridge(msg, frigo.id)){
-        invia_ackp(frigo.id, msg, queue, queue_risposta);
+        invia_ackp(frigo.id, msg, queue_risposta);
         set_stato(atoi(msg[MSG_FRIDGE_VALORE]), &frigo, &t_start, &allarme);
         printf("Stato attuale: %d\n", frigo.stato);
       }
       else if(codice == MSG_FRIDGE_SETINTERRUTTORE && controlla_fridge(msg, frigo.id)){
-        invia_ackp(frigo.id, msg, queue, queue_risposta);
+        invia_ackp(frigo.id, msg, queue_risposta);
         set_interruttore(atoi(msg[MSG_FRIDGE_VALORE]), &frigo, &t_start, &allarme);
         printf("Interruttore attuale: %d\n", frigo.interruttore);
       }
       else if(codice == MSG_FRIDGE_SETTERMOSTATO && controlla_fridge(msg, frigo.id)){
-        invia_ackp(frigo.id, msg, queue, queue_risposta);
+        invia_ackp(frigo.id, msg, queue_risposta);
         set_termostato(atoi(msg[MSG_FRIDGE_VALORE]), &frigo);
         printf("Termostato attuale: %d\n", frigo.termostato);
       }
       else if(codice == MSG_FRIDGE_SETDELAY && controlla_fridge(msg, frigo.id)){
-        invia_ackp(frigo.id, msg, queue, queue_risposta);
+        invia_ackp(frigo.id, msg, queue_risposta);
         set_delay(atoi(msg[MSG_FRIDGE_VALORE]), &frigo);
         printf("Delay attuale: %d\n", frigo.delay);
       }
       else if(codice == MSG_FRIDGE_SETPERC && controlla_fridge(msg, frigo.id)){
-        invia_ackp(frigo.id, msg, queue, queue_risposta);
+        invia_ackp(frigo.id, msg, queue_risposta);
         set_perc(atoi(msg[MSG_FRIDGE_VALORE]), &frigo);
         printf("Percentuale attuale: %d\n", frigo.percentuale);
+      }
+      else if(codice == MSG_ALLON && controlla_fridge(msg, frigo.id)){
+        invia_ackp(frigo.id, msg, queue_risposta);
+        set_stato(1, &frigo, &t_start, &allarme);
+        printf("Stato attuale (ALLON): %d\n", frigo.stato);
+      }
+      else if(codice == MSG_ALLOFF && controlla_fridge(msg, frigo.id)){
+        invia_ackp(frigo.id, msg, queue_risposta);
+        set_stato(0, &frigo, &t_start, &allarme);
+        printf("Stato attuale (ALLON): %d\n", frigo.stato);
       }
       else{ //richieste non valide -> invio un ACKN
         if(id_mittente_richiesta == id){
@@ -438,12 +437,12 @@ void send_info_fridge(char **msg, t_frigo *frigo){ //invia info
 
 void apri_frigo(t_frigo *frigo, time_t *t_start, int *allarme, int delay_recupero){
   frigo->stato = TRUE;
-  if(delay_recupero >= 0){ //se non sono in recupero
+  if(!delay_recupero){ //se non sono in recupero
     time(t_start); //salvo tempo inizio apertura
   }
 
   if((*allarme = fork()) == 0){ //inizializzo un timer
-    if(delay_recupero < 0){ //se non sono in recupero
+    if(delay_recupero == FALSE){ //se non sono in recupero
       printf("Chiusura automatica fra %d secondi\n", frigo->delay);
       sleep(frigo->delay); //chiusura dopo [delay] secondi
     }
@@ -451,7 +450,14 @@ void apri_frigo(t_frigo *frigo, time_t *t_start, int *allarme, int delay_recuper
       sleep(delay_recupero); // chiusura dopo [delay_recupero] secondi
     }
 
-    chiudi_frigo(frigo, t_start, allarme);
+    int queue;
+    msgbuf messaggio;
+    messaggio.msg_type = NUOVA_OPERAZIONE;
+    crea_queue(frigo->id, &queue);
+    crea_messaggio_base(&messaggio, FRIDGE, FRIDGE, frigo->id, frigo->id, MSG_SETSTATO); //invio un messaggio a se stesso...
+    concat_int(&messaggio, FALSE); //...con stato FALSE
+    msgsnd(queue, &messaggio, sizeof(messaggio.msg_text), 0);
+    printf("%s\n", messaggio.msg_text);
     exit(0); //termino allarme
   }
 }
@@ -624,5 +630,15 @@ void stampa_info_fridge(msgbuf *buf){
     strcat(info, str_temp);
     strcat(info, "| \\ \n\n---------------------------------- \n\n");
     printf("%s", info);
+  }
+}
+
+void invia_ackp(int myid, char **msg, int queue_risposta){
+  msgbuf response;
+  crea_messaggio_base(&response, atoi(msg[MSG_TYPE_MITTENTE]), FRIDGE, atoi(msg[MSG_ID_MITTENTE]), myid, MSG_ACKP);
+
+  if(atoi(msg[MSG_ID_MITTENTE]) != myid){
+    response.msg_type = 2;
+    msgsnd(queue_risposta, &response, sizeof(response.msg_text), 0);
   }
 }
