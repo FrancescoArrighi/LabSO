@@ -13,7 +13,7 @@ Operazioni supportate: \n \
   - close \n \
   - get : info, time \n \
  - Fridge: \n \
-  - get : info, stato, interruttore, time, delay, percentuale, termostato \n \
+  - get : info, stato, time, delay, percentuale, termostato \n \
   - set : interruttore, delay, percentuale, termostato \n\n \
 Esempio operazioni (dove 71 è id di un frigo): \n \
   -> 71 fridge get info \n \
@@ -26,7 +26,8 @@ int check_get(char ** cmd, int n_arg){
   int rt = FALSE;
   if((strcmp(cmd[1], "bulb") == 0) || (strcmp(cmd[1], "window") == 0) || (strcmp(cmd[1], "fridge") == 0)) {
     if((n_arg == 4) && (strcmp(cmd[2], "get") == 0)){
-      if((strcmp(cmd[3], "info") == 0) || (strcmp(cmd[3], "time") == 0)){
+      if((strcmp(cmd[3], "info") == 0) || (strcmp(cmd[3], "time") == 0) || (strcmp(cmd[3], "delay") == 0)
+      || (strcmp(cmd[3], "stato") == 0) || (strcmp(cmd[3], "percentuale") == 0) || (strcmp(cmd[3], "termostato") == 0)){
         rt = TRUE;
       }
     }
@@ -84,16 +85,7 @@ int main(){
             printf("Operazione non valida per Bulb\n");
           }
         }
-        /*else if(strcmp(cmd[1], "fridge") == 0) {
-          if(strcmp(cmd[2], "interruttore") == 0){
-            crea_messaggio_base(&risposta, FRIDGE, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_FRIDGE_SWITCH_I);
-          }
-          else {
-            crea_messaggio_base(&risposta, FRIDGE, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_ACKN);
-            printf("Operazione non valida per Fridge\n");
-          }
-        }
-        else if(strcmp(cmd[1], "hub") == 0) {
+        /*else if(strcmp(cmd[1], "hub") == 0) {
           if(strcmp(cmd[2], "interruttore") == 0){
             crea_messaggio_base(&risposta, HUB, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_HUB_SWITCH_I);
           }
@@ -112,25 +104,34 @@ int main(){
         printf("buf_w: %s\n", risposta.msg_text);
         close(fd);
       }
-      /*else if((n_arg == 5) && (strcmp(cmd[2], "set") == 0)) { //Richieste di setting
+      else if((n_arg == 5) && (strcmp(cmd[2], "set") == 0)) { //Richieste di setting
         sprintf(fifo_w, "/tmp/D_%s_R", cmd[0]);
         printf("%s\n", fifo_w);
         fd = open(fifo_w, O_WRONLY);
         strcpy(risposta.msg_text, "\0");
 
         if(strcmp(cmd[1], "fridge") == 0) {
-          if(strcmp(cmd[2], "delay") == 0){
+          if(strcmp(cmd[3], "delay") == 0){
             crea_messaggio_base(&risposta, FRIDGE, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_FRIDGE_SETDELAY);
+            concat_string(&risposta, cmd[4]);concat_string(&risposta, cmd[4]);
           }
-          else if(strcmp(cmd[2], "termostato") == 0){
+          else if(strcmp(cmd[3], "termostato") == 0){
             crea_messaggio_base(&risposta, FRIDGE, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_FRIDGE_SETTERMOSTATO);
+            concat_string(&risposta, cmd[4]);
+          }
+          else if(strcmp(cmd[3], "percentuale") == 0){
+            crea_messaggio_base(&risposta, FRIDGE, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_FRIDGE_SETPERC);
+            concat_string(&risposta, cmd[4]);
+          }
+          else if(strcmp(cmd[3], "interruttore") == 0){
+            crea_messaggio_base(&risposta, FRIDGE, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_FRIDGE_SETINTERRUTTORE);
+            concat_string(&risposta, cmd[4]);
           }
           else {
             crea_messaggio_base(&risposta, FRIDGE, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_ACKN);
             printf("Operazione non valida per Fridge\n");
           }
         }
-
         else { //Nel caso di input sbagliati scrivo comunque un messaggio di ack negativo
           crea_messaggio_base(&risposta, DEFAULT, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_ACKN);
           printf("Operazione non valida\n");
@@ -139,18 +140,32 @@ int main(){
         write(fd, risposta.msg_text, strlen(risposta.msg_text)+1);
         printf("buf_w: %s\n", risposta.msg_text);
         close(fd);
-      }*/
+    }
       else if((n_arg == 4) && (strcmp(cmd[2], "get") == 0) && check_get(cmd,n_arg)) { //Richieste di info o time
         sprintf(fifo_w, "/tmp/D_%s_R", cmd[0]);
         printf("%s\n", fifo_w);
         fd = open(fifo_w, O_WRONLY);
         strcpy(risposta.msg_text, "\0");
+        printf("cmd 3: %s\n", cmd[3]);
+        printf("cmd 1: %s\n", cmd[1]);
 
-        if((strcmp(cmd[3], "info") == 0) && ((strcmp(cmd[1], "bulb") == 0) || (strcmp(cmd[1], "window") == 0) || (strcmp(cmd[1], "fridge")))) {
+        if((strcmp(cmd[3], "info") == 0) && ((strcmp(cmd[1], "bulb") == 0) || (strcmp(cmd[1], "window") == 0) || (strcmp(cmd[1], "fridge") == 0))) {
           crea_messaggio_base(&risposta, DEFAULT, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_INF);
         }
-        else if((strcmp(cmd[3], "time") == 0) && ((strcmp(cmd[1], "bulb") == 0) || (strcmp(cmd[1], "window") == 0) || (strcmp(cmd[1], "fridge")))) {
+        else if((strcmp(cmd[3], "time") == 0) && ((strcmp(cmd[1], "bulb") == 0) || (strcmp(cmd[1], "window") == 0) || (strcmp(cmd[1], "fridge") == 0))) {
           crea_messaggio_base(&risposta, DEFAULT, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_GETTIME);
+        }
+        else if((strcmp(cmd[3], "delay") == 0) && (strcmp(cmd[1], "fridge") == 0)) {
+          crea_messaggio_base(&risposta, DEFAULT, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_FRIDGE_GETDELAY);
+        }
+        else if((strcmp(cmd[3], "percentuale") == 0) && (strcmp(cmd[1], "fridge") == 0)) {
+          crea_messaggio_base(&risposta, DEFAULT, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_FRIDGE_GETPERC);
+        }
+        else if((strcmp(cmd[3], "stato") == 0) && (strcmp(cmd[1], "fridge") == 0)) {
+          crea_messaggio_base(&risposta, DEFAULT, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_FRIDGE_GETSTATO);
+        }
+        else if((strcmp(cmd[3], "termostato") == 0) && (strcmp(cmd[1], "fridge") == 0)) {
+          crea_messaggio_base(&risposta, DEFAULT, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_FRIDGE_GETTERMOSTATO);
         }
         else {
           crea_messaggio_base(&risposta, DEFAULT, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_ACKN);
