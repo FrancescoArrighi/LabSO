@@ -52,8 +52,8 @@ int override(int_list * figli, int myid, int win_stato, int bulb_stato, int frid
 
       }
       else if(codice_msg == MSG_INF_BULB){
-        if(is_integer(msg[BULB_INF_STATO])){
-          temp_int = atoi(msg[BULB_INF_STATO]);
+        if(is_integer(msg[MSG_BULB_INF_STATO])){
+          temp_int = atoi(msg[MSG_BULB_INF_STATO]);
           if(temp_int >= 0 && temp_int != bulb_stato){
             rt = TRUE;
           }
@@ -63,8 +63,8 @@ int override(int_list * figli, int myid, int win_stato, int bulb_stato, int frid
         }
       }
       else if(codice_msg == MSG_INF_WINDOW){
-        if(is_integer(msg[WINDOW_INF_STATO])){
-          temp_int = atoi(msg[WINDOW_INF_STATO]);
+        if(is_integer(msg[MSG_WINDOW_INF_STATO])){
+          temp_int = atoi(msg[MSG_WINDOW_INF_STATO]);
           if(temp_int >= 0 && temp_int != win_stato){
             rt = TRUE;
           }

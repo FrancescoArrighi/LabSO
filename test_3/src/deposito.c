@@ -13,12 +13,13 @@ void deposito(int id, int id_controller){
   int flag_rimuovi;
   int id_dest;
   int mesg_non_supp;
+  int dim_messaggio;
   printf("deposito - %d - pid = %d - %d\n", id,getpid(), queue);
   while (TRUE) {
     msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), NUOVA_OPERAZIONE, 0);
     svuota_msg_queue(queue, 2);
     msg_type = messaggio.msg_type;
-    protocoll_parser(messaggio.msg_text, &msg);
+    dim_messaggio = protocoll_parser(messaggio.msg_text, &msg);
     //printf("mit: %d - op: %d - dest: %s\n", atoi(msg[MSG_ID_MITTENTE]), atoi(msg[MSG_OP]), msg[MSG_ID_DESTINATARIO]);
     id_dest = atoi(msg[MSG_ID_DESTINATARIO]);
     mesg_non_supp = FALSE;
@@ -228,38 +229,42 @@ void deposito(int id, int id_controller){
       int q_nf;
       int new_type = atoi(msg[MSG_ADD_DEVICE_TYPE]);
       int new_id = atoi(msg[MSG_ADD_DEVICE_ID]);
+      char * nome = malloc(strlen(msg[MSG_ADD_DEVICE_NOME])+1);
+      strcpy(nome, msg[MSG_ADD_DEVICE_NOME]);
       crea_queue(new_id, &q_nf);
 
       insert_int(q_nf, 0, figli);
 
       if(new_type == HUB){
         if(fork() == 0){
-          hub(new_id, FALSE, "hub");
+          hub(new_id, FALSE, nome);
           //deposito(new_id,CONTROLLER);
           exit(0);
         }
       }
       else if(new_type == TIMER){
         if(fork() == 0){
-          //timer();
+          msgbuf t_b;
+          ricomponi_messaggio(&(msg[MSG_ADD_DEVICE_TIMER_NEXTMSG]), dim_messaggio - MSG_ADD_DEVICE_TIMER_NEXTMSG,&t_b);
+          dv_timer(new_id, FALSE, nome, t_b.msg_text, atoi(msg[MSG_ADD_DEVICE_TIMER_DELAY]));
           exit(0);
         }
       }
       else if(new_type == BULB){
         if(fork() == 0){
-          bulb(new_id, FALSE, "Bulbina");
+          bulb(new_id, FALSE, nome);
           exit(0);
         }
       }
       else if(new_type == WINDOW){
         if(fork() == 0){
-          window(new_id, FALSE, "Windowine");
+          window(new_id, FALSE, nome);
           exit(0);
         }
       }
       else if(new_type == FRIDGE){
         if(fork() == 0){
-          fridge(new_id, FALSE, "Frighetto");
+          fridge(new_id, FALSE, nome);
           exit(0);
         }
       }

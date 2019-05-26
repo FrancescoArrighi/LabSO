@@ -373,7 +373,7 @@ void add(char ** cmd, int n, int q_dep, int new_id){
 
   msgbuf messaggio;
   int flag = FALSE;
-  if(n == 2){
+  if(n == 3){
     flag = TRUE;
     rimuovi_maiuscole(cmd[1]);
     crea_messaggio_base(&messaggio, DEPOSITO, CONTROLLER, DEPOSITO, CONTROLLER, MSG_ADD_DEVICE);
@@ -396,13 +396,74 @@ void add(char ** cmd, int n, int q_dep, int new_id){
       flag = FALSE;
     }
     concat_int(&messaggio, new_id);
+    concat_string(&messaggio, cmd[2]);
     if(flag){
       messaggio.msg_type = NUOVA_OPERAZIONE;
       msgsnd(q_dep, &messaggio, sizeof(messaggio.msg_text), 0);
     }
   }
+  else if(n == 8){
+    if(strcmp(cmd[1], "timer") == 0) {
+      concat_int(&messaggio, TIMER);
+      concat_int(&messaggio, new_id);
+      concat_string(&messaggio, cmd[2]);
+      concat_string(&messaggio, cmd[3]);
+
+      int flag = TRUE, destinatario;
+      msgbuf richiesta;
+      int invia_controllla = FALSE;
+      char ** t_cmd = cmd;
+      cmd = &(cmd[4]);
+      if(is_integer(cmd[1]) == TRUE && cmd[2] != NULL && cmd[3] != NULL){
+        rimuovi_maiuscole(cmd[2]);
+        rimuovi_maiuscole(cmd[3]);
+        destinatario = atoi(cmd[1]);
+        if(strcmp(cmd[2], "stato") == 0){
+          if(strcmp(cmd[3], "on") == 0){
+            crea_messaggio_base(&richiesta, DEFAULT, CONTROLLER, destinatario, CONTROLLER, MSG_SETSTATO);
+            concat_int(&richiesta, TRUE);
+            invia_controllla = TRUE;
+            flag = TRUE;
+          }
+          else if(strcmp(cmd[3], "off") == 0){
+            crea_messaggio_base(&richiesta, DEFAULT, CONTROLLER, destinatario , CONTROLLER, MSG_SETSTATO);
+            concat_int(&richiesta, FALSE);
+            invia_controllla = TRUE;
+            flag = TRUE;
+          }
+        }
+        else if(strcmp(cmd[2], "open") == 0){
+          if(strcmp(cmd[3], "on") == 0){
+            crea_messaggio_base(&richiesta, WINDOW, CONTROLLER, destinatario, CONTROLLER, MSG_WINDOW_OPEN);
+            invia_controllla = TRUE;
+            flag = TRUE;
+          }
+        }
+        else if(strcmp(cmd[2], "close") == 0){
+          if(strcmp(cmd[3], "on") == 0){
+            crea_messaggio_base(&richiesta, WINDOW, CONTROLLER, destinatario, CONTROLLER, MSG_WINDOW_CLOSE);
+            invia_controllla = TRUE;
+            flag = TRUE;
+          }
+        }
+        else if(strcmp(cmd[2], "termostato") == 0){
+          if(is_integer(cmd[3])){
+            crea_messaggio_base(&richiesta, FRIDGE, CONTROLLER, destinatario, CONTROLLER, MSG_FRIDGE_SETTERMOSTATO);
+            concat_string(&richiesta, cmd[3]);
+            invia_controllla = TRUE;
+            flag = TRUE;
+          }
+        }
+        if(invia_controllla == TRUE){
+          messaggio.msg_type = NUOVA_OPERAZIONE;
+          concat_string(&messaggio, richiesta.msg_text);
+          msgsnd(q_dep, &messaggio, sizeof(messaggio.msg_text), 0);
+        }
+      }
+    }
+  }
   if(flag == FALSE){
-    printf("\nErrore campi: add <type dispositivo>\n <type dispositivo>: \"hub\", \"timer\", \"bulb\", \"window\", \"fridge\"\n");
+    printf("\nErrore campi: add <type dispositivo> <nome>\n <type dispositivo>: \"hub\", \"timer\", \"bulb\", \"window\", \"fridge\"\n");
   }
 }
 
@@ -499,48 +560,54 @@ void swtch(char ** cmd, int n, int_list * figli, int queue, int deposito){
 }
 
 void info(char ** cmd, int n, int queue, int deposito, int_list * figli){
-  msgbuf newmsg, risposta_figli;
-  char ** msg_risp_f;
-  char ** msg;
-  crea_messaggio_base(&newmsg, DEFAULT, CONTROLLER, atoi(cmd[1]), CONTROLLER, MSG_INF);
-  newmsg.msg_type = NUOVA_OPERAZIONE;
-  msgsnd(deposito, &newmsg, sizeof(newmsg.msg_text), 0);
-  if(atoi(cmd[1]) == 1) {
-    crea_messaggio_base(&newmsg, DEFAULT, CONTROLLER, DEFAULT, CONTROLLER, MSG_INF);
-  }
-  invia_broadcast(&newmsg, figli);
-  int flag = TRUE;
-  int i, dim_msg, cod;
-  printf("controller info:\n");
-  for(i = figli->n + 1; i > 0 && flag; i--){
-    if(leggi(queue, &risposta_figli, 2, 2)){
-      dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
-      cod = codice_messaggio(msg_risp_f);
-      if(cod == MSG_INF_HUB || cod == MSG_INF_TIMER || cod == MSG_INF_DEPOSITO){
-        i += atoi(msg_risp_f[MSG_INF_CONTROLDV_NFIGLI]);
-        printf("stampa : aggiunto %d\n", atoi(msg_risp_f[MSG_INF_CONTROLDV_NFIGLI]) );
-      }
-      printf("----\n%s\n----\n", risposta_figli.msg_text );
-      if(cod == MSG_INF_HUB){
-        stampa_info_hub(&risposta_figli);
-      }
-      else if(cod == MSG_INF_TIMER){
+  if (n > 1) {
+    msgbuf newmsg, risposta_figli;
+    char ** msg_risp_f;
+    char ** msg;
+    crea_messaggio_base(&newmsg, DEFAULT, CONTROLLER, atoi(cmd[1]), CONTROLLER, MSG_INF);
+    newmsg.msg_type = NUOVA_OPERAZIONE;
+    msgsnd(deposito, &newmsg, sizeof(newmsg.msg_text), 0);
+    if(atoi(cmd[1]) == 1) {
+      crea_messaggio_base(&newmsg, DEFAULT, CONTROLLER, DEFAULT, CONTROLLER, MSG_INF);
+    }
+    invia_broadcast(&newmsg, figli);
+    int flag = TRUE;
+    int i, dim_msg, cod;
+    printf("controller info:\n");
+    for(i = figli->n + 1; i > 0 && flag; i--){
+      if(leggi(queue, &risposta_figli, 2, 2)){
+        dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
+        cod = codice_messaggio(msg_risp_f);
+        if(cod == MSG_INF_HUB || cod == MSG_INF_TIMER || cod == MSG_INF_DEPOSITO){
+          i += atoi(msg_risp_f[MSG_INF_CONTROLDV_NFIGLI]);
+          printf("stampa : aggiunto %d\n", atoi(msg_risp_f[MSG_INF_CONTROLDV_NFIGLI]) );
+        }
+        printf("----\n%s\n----\n", risposta_figli.msg_text );
+        if(cod == MSG_INF_HUB){
+          stampa_info_hub(&risposta_figli);
+        }
+        else if(cod == MSG_INF_TIMER){
 
+        }
+        else if(cod == MSG_INF_BULB){
+          stampa_info_bulb(&risposta_figli);
+        }
+        else if(cod == MSG_INF_WINDOW){
+          stampa_info_window(&risposta_figli);
+        }
+        else if(cod == MSG_INF_FRIDGE){
+          stampa_info_fridge(&risposta_figli);
+        }
       }
-      else if(cod == MSG_INF_BULB){
-        stampa_info_bulb(&risposta_figli);
-      }
-      else if(cod == MSG_INF_WINDOW){
-        stampa_info_window(&risposta_figli);
-      }
-      else if(cod == MSG_INF_FRIDGE){
-        stampa_info_fridge(&risposta_figli);
+      else{
+        flag = FALSE;
+        printf(">>timeout\n");
       }
     }
-    else{
-      flag = FALSE;
-      printf(">>timeout\n");
-    }
+
+  }
+  else {
+    printf("\nErrore campi: info <id dispositivo>\n <id dispositivo>: \"0 : Tutte le info\", \"1 : Controller\", \"2 : Deposito\"\n");
   }
 }
 

@@ -17,13 +17,13 @@ void stampa_info_timer(msgbuf *messaggio){
 }
 
 
-void timer_cd(time_t * t_start, int delay, int id_p){
+void timer_cd(time_t t_start, int delay, int id_p){
   time_t t_sleep = difftime(time(NULL), t_start);
   int q;
   char ** msg;
   crea_queue(id_p, &q);
   if(t_sleep < delay){
-    sleep(difftime(delay, t_sleep));
+    sleep(delay - t_sleep);
   }
   msgbuf messaggio;
   crea_messaggio_base(&messaggio, TIMER, TIMER, id_p, id_p, MSG_TIMER_TIMEOUT);
@@ -32,7 +32,7 @@ void timer_cd(time_t * t_start, int delay, int id_p){
   exit(0); //termino allarme
 }
 
-void timer(int id, int recupero, char * nome, msgbuf * msg_timeout, int delay){
+void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
   int_list * figli = (int_list *) create_int_list();
 
   int queue;
@@ -50,6 +50,7 @@ void timer(int id, int recupero, char * nome, msgbuf * msg_timeout, int delay){
   int fridge_t_start = -1;
   int fridge_termos = 3;
   msgbuf richiesta_timeout;
+  time_t t_start = time(NULL);
 
   if(recupero){
     msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 10, 0);
@@ -60,12 +61,12 @@ void timer(int id, int recupero, char * nome, msgbuf * msg_timeout, int delay){
     nome = malloc(sizeof(char) * (strlen(msg[MSG_RECUPERO_TIMER_NOME]) + 1));
     strcpy(nome, msg[MSG_RECUPERO_TIMER_NOME]);
     int i;
-    win_stato = aoti(msg[MSG_RECUPERO_TIMER_WINST]);
-    bulb_stato = aoti(msg[MSG_RECUPERO_TIMER_BULBST]);
-    fridge_stato = aoti(msg[MSG_RECUPERO_TIMER_FRIDGEST]);
-    fridge_delay = aoti(msg[MSG_RECUPERO_TIMER_FRIDGEDLY]);
-    fridge_t_start = aoti(msg[MSG_RECUPERO_TIMER_FRIDGETSTART]);
-    fridge_t_start = aoti(msg[MSG_RECUPERO_TIMER_FRIDGETERM]);
+    win_stato = atoi(msg[MSG_RECUPERO_TIMER_WINST]);
+    bulb_stato = atoi(msg[MSG_RECUPERO_TIMER_BULBST]);
+    fridge_stato = atoi(msg[MSG_RECUPERO_TIMER_FRIDGEST]);
+    fridge_delay = atoi(msg[MSG_RECUPERO_TIMER_FRIDGEDLY]);
+    fridge_t_start = atoi(msg[MSG_RECUPERO_TIMER_FRIDGETSTART]);
+    fridge_t_start = atoi(msg[MSG_RECUPERO_TIMER_FRIDGETERM]);
     if(msg[MSG_RECUPERO_TIMER_FIGLO] >= 0){
       insert_int(atoi(msg[MSG_RECUPERO_TIMER_FIGLO]), 0, figli);
       recupero_in_cascata(atoi(msg[MSG_RECUPERO_TIMER_FIGLO]));
@@ -75,6 +76,11 @@ void timer(int id, int recupero, char * nome, msgbuf * msg_timeout, int delay){
   }
   strcpy(richiesta_timeout.msg_text, msg_timeout);
   richiesta_timeout.msg_type = NUOVA_OPERAZIONE;
+
+  int pf = fork();
+  if(pf == 0){
+    timer_cd(t_start, delay, id);
+  }
   //inizio loop
   char ** msg;
   int msg_type;
@@ -456,14 +462,14 @@ void timer(int id, int recupero, char * nome, msgbuf * msg_timeout, int delay){
     }
     else if(codice_messaggio(msg) == MSG_TIMER_TIMEOUT ){
       int q_dest;
-      int dim_msg = protocoll_parser(richiesta_timeout, &msg);
+      int dim_msg = protocoll_parser(richiesta_timeout.msg_text, &msg);
       msgbuf richiesta_timeout, risposta;
-      cod = codice_messaggio(msg);
+      int cod = codice_messaggio(msg);
       if(dim_msg >= 5 ){
         if(cod == MSG_FRIDGE_SETTERMOSTATO || cod == MSG_FRIDGE_SETSTATO || cod == MSG_WINDOW_OPEN || cod == MSG_WINDOW_CLOSE){
-          itoa(id_p, &(msg[MSG_ID_MITTENTE]));
+          itoa(id, &(msg[MSG_ID_MITTENTE]));
           itoa(TIMER, &(msg[MSG_TYPE_MITTENTE]));
-          ricomponi_messaggio(msg, n, &richiesta_timeout);
+          ricomponi_messaggio(msg, dim_msg, &richiesta_timeout);
           invia_broadcast(&richiesta_timeout, figli);
           if(figli->n > 0){
             leggi(queue, &risposta, 2, 2);
@@ -704,6 +710,7 @@ void timer(int id, int recupero, char * nome, msgbuf * msg_timeout, int delay){
         //invio il messaggio di chiusura ai figli
         richiesta_figli.msg_type = NUOVA_OPERAZIONE;
         invia_broadcast(&richiesta_figli, figli);
+        kill(pf, SIGTERM);
         exit(0);
       }
       else{

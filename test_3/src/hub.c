@@ -27,12 +27,12 @@ void hub(int id, int recupero, char * nome){
     nome = malloc(sizeof(char) * (strlen(msg[MSG_RECUPERO_HUB_NOME]) + 1));
     strcpy(nome, msg[MSG_RECUPERO_HUB_NOME]);
     int i;
-    win_stato = aoti(msg[MSG_RECUPERO_HUB_WINST]);
-    bulb_stato = aoti(msg[MSG_RECUPERO_HUB_BULBST]);
-    fridge_stato = aoti(msg[MSG_RECUPERO_HUB_FRIDGEST]);
-    fridge_delay = aoti(msg[MSG_RECUPERO_HUB_FRIDGEDLY]);
-    fridge_t_start = aoti(msg[MSG_RECUPERO_HUB_FRIDGETSTART]);
-    fridge_t_start = aoti(msg[MSG_RECUPERO_HUB_FRIDGETERM]);
+    win_stato = atoi(msg[MSG_RECUPERO_HUB_WINST]);
+    bulb_stato = atoi(msg[MSG_RECUPERO_HUB_BULBST]);
+    fridge_stato = atoi(msg[MSG_RECUPERO_HUB_FRIDGEST]);
+    fridge_delay = atoi(msg[MSG_RECUPERO_HUB_FRIDGEDLY]);
+    fridge_t_start = atoi(msg[MSG_RECUPERO_HUB_FRIDGETSTART]);
+    fridge_t_start = atoi(msg[MSG_RECUPERO_HUB_FRIDGETERM]);
     for( i = MSG_RECUPERO_HUB_INIZIOFIGLI; i < n; i++){
       insert_int(atoi(msg[i]), 0, figli);
       recupero_in_cascata(atoi(msg[i]));

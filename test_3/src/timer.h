@@ -3,6 +3,6 @@
 #ifndef HUB_H
 #define HUB_H
 
-void timer(int id, int recupero, char * nome);
+void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay);
 
 #endif

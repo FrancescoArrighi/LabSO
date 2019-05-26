@@ -28,7 +28,7 @@ main.o : main.h main.c
 hub.o : hub.h hub.c
 	$(CC) $(CFLAGS) -c hub.c
 
-hub.o : timer.h timer.c
+timer.o : timer.h timer.c
 	$(CC) $(CFLAGS) -c timer.c
 
 deposito.o : deposito.h deposito.c
