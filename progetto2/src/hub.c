@@ -100,6 +100,17 @@ void hub(int id, int recupero, char * nome){
   int flag_rimuovi;
   int id_dest;
   int mesg_non_supp;
+
+  int win_stato = FALSE;
+
+  int bulb_stato = FALSE;
+
+  int fridge_stato = FALSE;
+  int fridge_interruttore = FALSE;
+  int fridge_delay = 5;
+  int fridge_t_start = -1;
+  int fridge_termos = 3;
+
   while ( TRUE) {
     msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), NUOVA_OPERAZIONE, 0);
     svuota_msg_queue(queue, 2);
@@ -352,7 +363,7 @@ void hub(int id, int recupero, char * nome){
 
         msgbuf richiesta_figlio, risposta_figlio, risposta, richiesta_dep, risposta_deb;
         char ** msg_risp_f;
-
+        /*
         crea_messaggio_base(&richiesta_figlio, DEFAULT, HUB, DEFAULT, id, MSG_GET_TERMINAL_TYPE);
         richiesta_figlio.msg_type = NUOVA_OPERAZIONE;
         msgsnd(q_nf, &richiesta_figlio, sizeof(richiesta_figlio.msg_text), 0);
@@ -371,9 +382,9 @@ void hub(int id, int recupero, char * nome){
           else{
             flag = FALSE;
           }
-        }
-        if(type_new_c > 0 && (type_new_c == type_child || type_child <= 0)){
-          type_child = type_new_c;
+        }*/
+        //if(type_new_c > 0 && (type_new_c == type_child || type_child <= 0)){
+          //type_child = type_new_c;
           insert_int(q_nf, 0, figli);
 
           int q_dep;
@@ -391,10 +402,10 @@ void hub(int id, int recupero, char * nome){
 
           crea_messaggio_base(&risposta, DEPOSITO, HUB, DEPOSITO, id, MSG_ACKP);
 
-        }
+        /*}
         else{
           crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
-        }
+        }*/
         risposta.msg_type = 2;
         int msg_queue_mit;
         crea_queue(atoi(msg[MSG_ID_MITTENTE]), &msg_queue_mit);
@@ -501,6 +512,188 @@ void hub(int id, int recupero, char * nome){
           risposta.msg_type = 2;
           msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
         }
+      }
+    }
+    else if(codice_messaggio(msg) == MSG_FRIDGE_SETTERMOSTATO){
+
+      msgbuf risposta_figli, richiesta_figli, risposta;
+
+      int msg_queue_mit;
+      crea_queue(atoi(msg[MSG_ID_MITTENTE]), &msg_queue_mit);
+      char ** msg_risp_f;
+
+      int i, flag1 = TRUE, flag2 = TRUE, dim_msg;
+
+      if(id_dest == DEFAULT || id_dest == id){
+        fridge_termos = atoi(msg[MSG_FRIDGE_VALORE]);
+        crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_FRIDGE_SETTERMOSTATO);
+      }
+      else{
+        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_FRIDGE_SETTERMOSTATO);
+      }
+
+      concat_string(&richiesta_figli, msg[MSG_FRIDGE_VALORE]);
+      richiesta_figli.msg_type = NUOVA_OPERAZIONE;
+
+      invia_broadcast(&richiesta_figli, figli);
+
+      for(i = figli->n; i > 0 && flag1; i--){
+        if(leggi(queue, &risposta_figli, 2, 2)){
+          //printf("hub - %d - pid = %d - riga : %d\n------------------\n%s\n------------------\n", id,getpid(), 454,risposta_figli.msg_text);
+          dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
+          if(codice_messaggio(msg_risp_f) != MSG_ACKN){
+            if(flag2 == TRUE){
+              flag2 = FALSE;
+              crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+              risposta.msg_type = 2;
+              msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
+            }
+          }
+        }
+        else{
+          flag1 = FALSE;
+        }
+      }
+      if(flag2 == TRUE){
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+        risposta.msg_type = 2;
+        msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
+      }
+    }
+    else if(codice_messaggio(msg) == MSG_SETSTATO){
+
+      msgbuf risposta_figli, richiesta_figli, risposta;
+
+      int msg_queue_mit;
+      crea_queue(atoi(msg[MSG_ID_MITTENTE]), &msg_queue_mit);
+      char ** msg_risp_f;
+
+      int i, flag1 = TRUE, flag2 = TRUE, dim_msg;
+
+      if(id_dest == DEFAULT || id_dest == id){
+        bulb_stato = atoi(msg[MSG_SETSTATO_VAL]);
+        crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_SETSTATO);
+      }
+      else{
+        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_SETSTATO);
+      }
+
+      concat_string(&richiesta_figli, msg[MSG_SETSTATO_VAL]);
+      richiesta_figli.msg_type = NUOVA_OPERAZIONE;
+
+      invia_broadcast(&richiesta_figli, figli);
+
+      for(i = figli->n; i > 0 && flag1; i--){
+        if(leggi(queue, &risposta_figli, 2, 2)){
+          //printf("hub - %d - pid = %d - riga : %d\n------------------\n%s\n------------------\n", id,getpid(), 454,risposta_figli.msg_text);
+          dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
+          if(codice_messaggio(msg_risp_f) != MSG_ACKN){
+            if(flag2 == TRUE){
+              flag2 = FALSE;
+              crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+              risposta.msg_type = 2;
+              msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
+            }
+          }
+        }
+        else{
+          flag1 = FALSE;
+        }
+      }
+      if(flag2 == TRUE){
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+        risposta.msg_type = 2;
+        msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
+      }
+    }
+    else if(codice_messaggio(msg) == MSG_WINDOW_OPEN){
+
+      msgbuf risposta_figli, richiesta_figli, risposta;
+
+      int msg_queue_mit;
+      crea_queue(atoi(msg[MSG_ID_MITTENTE]), &msg_queue_mit);
+      char ** msg_risp_f;
+
+      int i, flag1 = TRUE, flag2 = TRUE, dim_msg;
+
+      if(id_dest == DEFAULT || id_dest == id){
+        win_stato = TRUE;
+        crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_WINDOW_OPEN);
+      }
+      else{
+        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_WINDOW_OPEN);
+      }
+
+      richiesta_figli.msg_type = NUOVA_OPERAZIONE;
+
+      invia_broadcast(&richiesta_figli, figli);
+
+      for(i = figli->n; i > 0 && flag1; i--){
+        if(leggi(queue, &risposta_figli, 2, 2)){
+          //printf("hub - %d - pid = %d - riga : %d\n------------------\n%s\n------------------\n", id,getpid(), 454,risposta_figli.msg_text);
+          dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
+          if(codice_messaggio(msg_risp_f) != MSG_ACKN){
+            if(flag2 == TRUE){
+              flag2 = FALSE;
+              crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+              risposta.msg_type = 2;
+              msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
+            }
+          }
+        }
+        else{
+          flag1 = FALSE;
+        }
+      }
+      if(flag2 == TRUE){
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+        risposta.msg_type = 2;
+        msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
+      }
+    }
+    else if(codice_messaggio(msg) == MSG_WINDOW_CLOSE){
+
+      msgbuf risposta_figli, richiesta_figli, risposta;
+
+      int msg_queue_mit;
+      crea_queue(atoi(msg[MSG_ID_MITTENTE]), &msg_queue_mit);
+      char ** msg_risp_f;
+
+      int i, flag1 = TRUE, flag2 = TRUE, dim_msg;
+
+      if(id_dest == DEFAULT || id_dest == id){
+        win_stato = FALSE;
+        crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_WINDOW_CLOSE);
+      }
+      else{
+        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_WINDOW_CLOSE);
+      }
+
+      richiesta_figli.msg_type = NUOVA_OPERAZIONE;
+
+      invia_broadcast(&richiesta_figli, figli);
+
+      for(i = figli->n; i > 0 && flag1; i--){
+        if(leggi(queue, &risposta_figli, 2, 2)){
+          //printf("hub - %d - pid = %d - riga : %d\n------------------\n%s\n------------------\n", id,getpid(), 454,risposta_figli.msg_text);
+          dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
+          if(codice_messaggio(msg_risp_f) != MSG_ACKN){
+            if(flag2 == TRUE){
+              flag2 = FALSE;
+              crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+              risposta.msg_type = 2;
+              msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
+            }
+          }
+        }
+        else{
+          flag1 = FALSE;
+        }
+      }
+      if(flag2 == TRUE){
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+        risposta.msg_type = 2;
+        msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
       }
     }
     else{

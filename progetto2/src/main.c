@@ -1,16 +1,6 @@
 #include "main.h"
 
 
-
-int equal_fridge(msgbuf msg_example, msgbuf messaggio){ // da fare
-  return TRUE;
-}
-
-int equal_window(msgbuf msg_example, msgbuf messaggio){ // da fare
-  return TRUE;
-}
-
-
 tree_device * create_tree_device(){
     tree_device * rt = (tree_device *) malloc(sizeof(tree_device));
     rt->root = NULL;
@@ -317,7 +307,62 @@ void lik(char ** cmd, int n, int_list * figli, int queue, int deposito){
 
 void list(char ** cmd, int n, int_list * figli, int queue, int deposito){
   if(n == 1){
-    get_all_info(figli, queue);
+    msgbuf newmsg, risposta_figli;
+    char ** msg_risp_f;
+    crea_messaggio_base(&newmsg, DEPOSITO, CONTROLLER, DEPOSITO, CONTROLLER, MSG_INF);
+    newmsg.msg_type = NUOVA_OPERAZIONE;
+    msgsnd(deposito, &newmsg, sizeof(newmsg.msg_text), 0);
+
+    invia_broadcast(&newmsg, figli);
+
+    int flag = TRUE;
+    int i, dim_msg, cod;
+    char * str_type;
+    for(i = figli->n + 1; i > 0 && flag; i--){
+      if(leggi(queue, &risposta_figli, 2, 2)){
+        dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
+        cod = codice_messaggio(msg_risp_f);
+        if(cod == MSG_INF_HUB || cod == MSG_INF_TIMER || cod == MSG_INF_DEPOSITO){
+          i += atoi(msg_risp_f[MSG_INF_CONTROLDV_NFIGLI]);
+        }
+
+        if(cod == MSG_INF_HUB){
+          str_type = (char *) malloc(sizeof(char) * 4);
+          strcpy(str_type, "Hub");
+        }
+        else if(cod == MSG_INF_TIMER){
+          str_type = (char *) malloc(sizeof(char) * 6);
+          strcpy(str_type, "Timer");
+        }
+        else if(cod == MSG_INF_BULB){
+          str_type = (char *) malloc(sizeof(char) * 5);
+          strcpy(str_type, "Bulb");
+        }
+        else if(cod == MSG_INF_WINDOW){
+          str_type = (char *) malloc(sizeof(char) * 7);
+          strcpy(str_type, "Window");
+        }
+        else if(cod == MSG_INF_FRIDGE){
+          str_type = (char *) malloc(sizeof(char) * 7);
+          strcpy(str_type, "Fridge");
+        }
+        else{
+          str_type = (char *) malloc(sizeof(char) * 3);
+          strcpy(str_type, "ND");
+        }
+        if(cod != MSG_INF_DEPOSITO){
+          printf("=> %s : %s : %s\n", msg_risp_f[MSG_INF_NOME], str_type ,msg_risp_f[MSG_ID_MITTENTE]);
+        }
+      }
+      else{
+        flag = FALSE;
+        printf(">>timeout\n");
+      }
+    }
+      get_all_info(figli, queue);
+  }
+  else{
+    printf("\nErrore campi: il comando list non accetta parametri");
   }
 }
 
@@ -359,7 +404,66 @@ void add(char ** cmd, int n, int q_dep, int new_id){
 }
 
 void swtch(char ** cmd, int n, int queue, int deposito){
-
+  int flag = TRUE, destinatario;
+  if(n == 3){
+    if(is_integer(cmd[1]) == TRUE && cmd[2] != NULL && cmd[3] != NULL){
+      rimuovi_maiuscole(cmd[2]);
+      rimuovi_maiuscole(cmd[3]);
+      destinatario = atoi(cmd[1]);
+      if(strcmp(cmd[2], "stato") == 0){
+        if(strcmp(cmd[3], "on") == 0){
+          crea_messaggio_base(&richiesta, DEFAULT, CONTROLLER, destinatario ,MSG_SETSTATO);
+          concat_int(&richiesta, TRUE);
+          invia_broadcast(&richiesta, queue);
+        }
+        else if(strcmp(cmd[2], "off") == 0){
+          crea_messaggio_base(&richiesta, DEFAULT, CONTROLLER, destinatario ,MSG_SETSTATO);
+          concat_int(&risposta, FALSE);
+          invia_broadcast(&richiesta, queue);
+        }
+        else{
+          printf("Attenzione il comando SWITCH <id> STATO accetta solo 'ON' o 'OFF' come argomento\n" );
+        }
+      }
+      else if(strcmp(cmd[2], "open") == 0){
+        if(strcmp(cmd[3], "on") == 0){
+          crea_messaggio_base(&richiesta, WINDOW, CONTROLLER, destinatario ,MSG_WINDOW_OPEN);
+          invia_broadcast(&richiesta, queue);
+        }
+        else{
+          printf("Attenzione il comando SWITCH <id> OPEN accetta solo 'ON' come argomento\n" );
+        }
+      }
+      else if(strcmp(cmd[2], "close") == 0){
+        if(strcmp(cmd[3], "on") == 0){
+          crea_messaggio_base(&richiesta, WINDOW, CONTROLLER, destinatario ,MSG_WINDOW_CLOSE);
+          invia_broadcast(&richiesta, queue);
+        }
+        else{
+          printf("Attenzione il comando SWITCH <id> CLOSE accetta solo 'ON' come argomento\n" );
+        }
+      }
+      else if(strcmp(cmd[2], "termostato") == 0){
+        if(is_integer(cmd[3])){
+          crea_messaggio_base(&richiesta, FRIDGE, CONTROLLER, destinatario ,MSG_FRIDGE_SETTERMOSTATO);
+          concat_string(cmd[3]);
+          invia_broadcast(&richiesta, queue);
+        }
+        else{
+          printf("Attenzione il comando SWITCH <id> TERMOSTATO accetta solo intero come parametro aggiuntivo\n" );
+        }
+      }
+    }
+    else{
+      flag = FALSE;
+    }
+  }
+  else{
+    flag = FALSE;
+  }
+  if(flag == FALSE){
+    printf("\nErrore campi: add <type dispositivo>\n <type dispositivo>: \"hub\", \"timer\", \"bulb\", \"window\", \"fridge\"\n");
+  }
 }
 
 void info(char ** cmd, int n, int queue, int deposito, int_list * figli){
@@ -369,18 +473,37 @@ void info(char ** cmd, int n, int queue, int deposito, int_list * figli){
   crea_messaggio_base(&newmsg, DEFAULT, CONTROLLER, atoi(cmd[1]), CONTROLLER, MSG_INF);
   newmsg.msg_type = NUOVA_OPERAZIONE;
   msgsnd(deposito, &newmsg, sizeof(newmsg.msg_text), 0);
+  if(atoi(cmd[1]) == 1) {
+    crea_messaggio_base(&newmsg, DEFAULT, CONTROLLER, DEFAULT, CONTROLLER, MSG_INF);
+  }
   invia_broadcast(&newmsg, figli);
   int flag = TRUE;
-  int i;
+  int i, dim_msg, cod;
   printf("controller info:\n");
   for(i = figli->n + 1; i > 0 && flag; i--){
     if(leggi(queue, &risposta_figli, 2, 2)){
-      int dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
-      if(codice_messaggio(msg_risp_f) == MSG_INF_HUB || codice_messaggio(msg_risp_f) == MSG_INF_TIMER || codice_messaggio(msg_risp_f) == MSG_INF_DEPOSITO){
+      dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
+      cod = codice_messaggio(msg_risp_f);
+      if(cod == MSG_INF_HUB || cod == MSG_INF_TIMER || cod == MSG_INF_DEPOSITO){
         i += atoi(msg_risp_f[MSG_INF_CONTROLDV_NFIGLI]);
         printf("stampa : aggiunto %d\n", atoi(msg_risp_f[MSG_INF_CONTROLDV_NFIGLI]) );
       }
-      printf("info:\n---------------------------------- \n%s\n---------------------------------- \n", risposta_figli.msg_text);
+      printf("----\n%s\n----\n", risposta_figli.msg_text );
+      if(cod == MSG_INF_HUB){
+
+      }
+      else if(cod == MSG_INF_TIMER){
+
+      }
+      else if(cod == MSG_INF_BULB){
+
+      }
+      else if(cod == MSG_INF_WINDOW){
+
+      }
+      else if(cod == MSG_INF_FRIDGE){
+
+      }
     }
     else{
       flag = FALSE;
@@ -412,8 +535,19 @@ void controller(int myid, int id_deposito){
             list(cmd, n, figli, my_queue, queue_deposito);;
           }
           else if(strcmp(cmd[0], "add") == 0){
+            int flag = TRUE;
+            int q;
+            key_t key;
+
+            while(flag){
+              next_id++;
+              if((key = ftok("/tmp/domotica.txt", next_id)) != -1){ // crea la chiave
+                if( (q = msgget(key, IPC_CREAT | IPC_EXCL)) != -1){ // crea il file se non esiste
+                    flag = FALSE;
+                }
+              }
+            }
             add(cmd, n, queue_deposito, next_id);
-            next_id++;
           }
           else if(strcmp(cmd[0], "del") == 0){
             del(cmd, n, figli, my_queue, queue_deposito);
