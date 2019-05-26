@@ -379,6 +379,16 @@ void fridge(int id, int recupero, char *nome){ //recupero booleano
         set_perc(atoi(msg[MSG_FRIDGE_VALORE]), &frigo);
         printf("Percentuale attuale: %d\n", frigo.percentuale);
       }
+      else if(codice == MSG_ALLON && controlla_fridge(msg, frigo.id)){
+        invia_ackp(frigo.id, msg, queue_risposta);
+        set_stato(1, &frigo, &t_start, &allarme);
+        printf("Stato attuale (ALLON): %d\n", frigo.stato);
+      }
+      else if(codice == MSG_ALLOFF && controlla_fridge(msg, frigo.id)){
+        invia_ackp(frigo.id, msg, queue_risposta);
+        set_stato(0, &frigo, &t_start, &allarme);
+        printf("Stato attuale (ALLON): %d\n", frigo.stato);
+      }
       else{ //richieste non valide -> invio un ACKN
         if(id_mittente_richiesta == id){
           crea_messaggio_base(&fifo_msgbuf, atoi(msg[MSG_TYPE_MITTENTE]), FRIDGE, id_mittente_richiesta, frigo.id, MSG_ACKN);
