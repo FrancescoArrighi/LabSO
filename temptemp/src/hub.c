@@ -18,7 +18,7 @@ int override(int_list * figli, int myid, int win_stato, int bulb_stato, int frid
       if(codice_msg == MSG_ACKP){
         rt = TRUE;
       }
-      else if(codice_msg == MSG_OVERRIDE){
+      else if(codice_msg == MSG_OVERRIDE_RISP){
         if(is_integer(msg[MSG_OVERRIDE_WINST])){
           temp_int = atoi(msg[MSG_OVERRIDE_WINST]);
           if(temp_int >= 0 && temp_int != win_stato){
@@ -191,9 +191,6 @@ void hub(int id, int recupero, char * nome){
         int msg_queue_mit;
         crea_queue(atoi(msg[MSG_ID_MITTENTE]), &msg_queue_mit);
         msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
-        if(id == 386){
-          //printf("myinfo/*\n%s\n/*\n", risposta.msg_text);
-        }
         //creo la richiesta di info per i figli
         msgbuf richiesta_figli;
         crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_INF);
@@ -280,12 +277,12 @@ void hub(int id, int recupero, char * nome){
         msgbuf msg_example;
         int rt = override(figli, id, win_stato, bulb_stato, fridge_stato, fridge_delay, fridge_termos);
         if(rt == FALSE){ // niente override
-          char ** example;
-          int dim_r = protocoll_parser(risposta.msg_text, &example);
-          strcpy(example[MSG_ID_DESTINATARIO], msg[MSG_ID_MITTENTE]);
-          strcpy(example[MSG_TYPE_DESTINATARIO], msg[MSG_TYPE_MITTENTE]);
-          itoa(id, &example[MSG_ID_MITTENTE]);
-          ricomponi_messaggio(example, dim_r, &risposta);
+          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_OVERRIDE_RISP);
+          concat_int(&risposta, win_stato);
+          concat_int(&risposta, bulb_stato);
+          concat_int(&risposta, fridge_stato);
+          concat_int(&risposta, fridge_delay);
+          concat_int(&risposta, fridge_termos);
         }
         else{
           crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
