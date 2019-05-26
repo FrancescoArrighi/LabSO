@@ -121,6 +121,22 @@ int override(int_list * figli, int myid, int win_stato, int bulb_stato, int frid
   return rt;
 }
 
+void stampa_info_hub(msgbuf *buf){
+  char ** ris;
+  char tmp[100];
+  char stampa[BUF_SIZE];
+  protocoll_parser(m->msg_text, &ris);
+
+  if(codice_messaggio(ris) == MSG_INF_HUB) {
+    sprintf(tmp, "%s[HUB] : %s\n", ris[MSG_INF_NOME], ris[MSG_ID_MITTENTE]);
+    strcpy(stampa, tmp);
+    sprintf(tmp, "| Numero figli : %s\n", ris[MSG_INF_CONTROLDV_NFIGLI]);
+    strcat(stampa, tmp);
+    strcat(stampa, "| \\");
+    printf("\ninfo bulb:\n---------------------------------- \n%s\n----------------------------------\n",stampa);
+  }
+}
+
 void hub(int id, int recupero, char * nome){
   int_list * figli = (int_list *) create_int_list();
 
@@ -612,6 +628,7 @@ void hub(int id, int recupero, char * nome){
 
       if(id_dest == DEFAULT || id_dest == id){
         bulb_stato = atoi(msg[MSG_SETSTATO_VAL]);
+        fridge_stato = atoi(msg[MSG_SETSTATO_VAL]);
         crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_SETSTATO);
       }
       else{
