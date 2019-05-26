@@ -78,7 +78,7 @@ void bulb(int id, int recupero, char * nome){
       read(fd_read, buf_r, BUF_SIZE); // Leggo dalla FIFO
       printf("Ho letto il comando\n");
       printf("CMD : %s\n", buf_r);
-      n_arg = str_split(buf_r, &cmd); // Numero di argomenti passati
+      n_arg = protocoll_parser(buf_r, &cmd); // Numero di argomenti passati
       int c_umano = codice_messaggio(cmd);
 
       if (c_umano > 0){ //Agisco solo se il codice non è un ack negativo

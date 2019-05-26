@@ -50,5 +50,6 @@ int leggi(int queue, msgbuf * messaggio, int p, float t);
 char * percorso_file(int id, int tipo);
 int stampa_info_bulb(msgbuf * m);
 int stampa_info_window(msgbuf * m);
+int is_integer(char * str);
 
 #endif
