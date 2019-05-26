@@ -410,3 +410,23 @@ int stampa_info_window(msgbuf * m){
   }
   return r;
 }
+
+int is_integer(char * str){
+  int rt = FALSE;
+  if(str != NULL){
+    printf("is int 1\n" );
+    if(strlen(str) > 0){
+      printf("is int 2\n" );
+      int i;
+      rt = TRUE;
+      for(i = 0; i < strlen(str); i++){
+        printf("is int 3 i: %d\n",i );
+        if(str[i] < '0' || str[i] > '9'){
+          printf("is int 4 char: %c, val: %d\n",str[i] ,str[i] );
+          rt = FALSE;
+        }
+      }
+    }
+  }
+  return rt;
+}
