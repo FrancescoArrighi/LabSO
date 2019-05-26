@@ -1,16 +1,9 @@
 ##OBJECTS = main.o fridge.o msg_exchange.o useful_fun.o hub.o timer.o
-SOURCES  := $(wildcard *.c)
-OBJECTS  := $(.c=.o)
+OBJECTS  := umano.o human_fun.o
 
 CC = gcc
 CFLAGS = -std=gnu90
 #Linker Falgs ang CC
-
-#brevi info testuali
-info = qualcosa
-
-help :
-	@echo $(info)
 
 build : $(OBJECTS)
 	$(CC) $(CFLAGS) $(OBJECTS)
@@ -25,4 +18,4 @@ clean :
 
 
 
-.PHONY : build clean help
+.PHONY : build clean
