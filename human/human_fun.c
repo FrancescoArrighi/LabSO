@@ -122,6 +122,12 @@ void concat_int(msgbuf * messaggio, int n){
   strcat(messaggio->msg_text, "\n");
 }
 
+void concat_string(msgbuf * messaggio, char * str){
+  strcat(messaggio->msg_text, str);
+  strcat(messaggio->msg_text, "\n");
+}
+
+
 void crea_messaggio_base(msgbuf * messaggio, int type_dest, int type_mit, int id_dest, int id_mit, int codice_op){
 
   messaggio->msg_text[0] = '\0';
@@ -130,4 +136,20 @@ void crea_messaggio_base(msgbuf * messaggio, int type_dest, int type_mit, int id
   concat_int(messaggio, id_dest);
   concat_int(messaggio, id_mit);
   concat_int(messaggio, codice_op);
+}
+
+int is_integer(char * str){
+  int rt = FALSE;
+  if(str != NULL){
+    if(strlen(str) > 0){
+      int i;
+      rt = TRUE;
+      for(i = 0; i < strlen(str); i++){
+        if(str[i] < '0' || str[i] > '9'){
+          rt = FALSE;
+        }
+      }
+    }
+  }
+  return rt;
 }

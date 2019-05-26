@@ -1,4 +1,4 @@
-#include "myheader.h"
+
 #include "human_fun.h"
 
 #define HELP_STRING \
@@ -85,16 +85,6 @@ int main(){
             printf("Operazione non valida per Bulb\n");
           }
         }
-        /*else if(strcmp(cmd[1], "hub") == 0) {
-          if(strcmp(cmd[2], "interruttore") == 0){
-            crea_messaggio_base(&risposta, HUB, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_HUB_SWITCH_I);
-          }
-          else {
-            crea_messaggio_base(&risposta, HUB, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_ACKN);
-            printf("Operazione non valida per Fridge\n");
-          }
-        }*/
-
         else { //Nel caso di input sbagliati scrivo comunque un messaggio di ack negativo
           crea_messaggio_base(&risposta, DEFAULT, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_ACKN);
           printf("Operazione non valida\n");
@@ -110,7 +100,7 @@ int main(){
         fd = open(fifo_w, O_WRONLY);
         strcpy(risposta.msg_text, "\0");
 
-        if(strcmp(cmd[1], "fridge") == 0) {
+        if((strcmp(cmd[1], "fridge") == 0) && (is_integer(cmd[4]) == TRUE)) {
           if(strcmp(cmd[3], "delay") == 0){
             crea_messaggio_base(&risposta, FRIDGE, DEFAULT, atoi(cmd[0]), atoi(cmd[0]), MSG_FRIDGE_SETDELAY);
             concat_string(&risposta, cmd[4]);concat_string(&risposta, cmd[4]);
