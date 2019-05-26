@@ -404,8 +404,7 @@ void recupero_in_cascata(int queue){
     }
     else if(type == TIMER){
       if(fork() == 0){
-        printf("ciao\n" );
-        dv_timer(myid, TRUE, "", "", 0);
+        //timer(myid, TRUE, "");
         exit(0);
       }
     }

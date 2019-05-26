@@ -1,45 +1,13 @@
-#include "TIMER.h"
+#include "hub.h"
 
-void stampa_info_timer(msgbuf *messaggio){
-  char ** ris;
-  char tmp[100];
-  char stampa[BUF_SIZE];
-  protocoll_parser(messaggio->msg_text, &ris);
-
-  if(codice_messaggio(ris) == MSG_INF_TIMER) {
-    sprintf(tmp, "%s[TIMER] : %s\n", ris[MSG_INF_NOME], ris[MSG_ID_MITTENTE]);
-    strcpy(stampa, tmp);
-    sprintf(tmp, "| Numero figli : %s\n", ris[MSG_INF_CONTROLDV_NFIGLI]);
-    strcat(stampa, tmp);
-    strcat(stampa, "| \\");
-    printf("\ninfo bulb:\n---------------------------------- \n%s\n----------------------------------\n",stampa);
-  }
-}
-
-
-void timer_cd(time_t t_start, int delay, int id_p){
-  time_t t_sleep = difftime(time(NULL), t_start);
-  int q;
-  char ** msg;
-  crea_queue(id_p, &q);
-  if(t_sleep < delay){
-    sleep(delay - t_sleep);
-  }
-  msgbuf messaggio;
-  crea_messaggio_base(&messaggio, TIMER, TIMER, id_p, id_p, MSG_TIMER_TIMEOUT);
-  messaggio.msg_type = NUOVA_OPERAZIONE;
-  msgsnd(q, &messaggio, sizeof(messaggio.msg_text), 0);
-  exit(0); //termino allarme
-}
-
-void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
+void hub(int id, int recupero, char * nome){
   int_list * figli = (int_list *) create_int_list();
 
   int queue;
   msgbuf messaggio;
 
   crea_queue(id, &queue);
-  printf("TIMER - %d - pid = %d - %d\n", id,getpid(), queue);
+  printf("hub - %d - pid = %d - %d\n", id,getpid(), queue);
 
   int win_stato = FALSE;
 
@@ -49,8 +17,6 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
   int fridge_delay = 5;
   int fridge_t_start = -1;
   int fridge_termos = 3;
-  msgbuf richiesta_timeout;
-  time_t t_start = time(NULL);
 
   if(recupero){
     msgrcv(queue, &messaggio ,sizeof(messaggio.msg_text), 10, 0);
@@ -58,42 +24,21 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
     char ** msg;
     int n = protocoll_parser(messaggio.msg_text, &msg);
     char * str;
-    nome = malloc(sizeof(char) * (strlen(msg[MSG_RECUPERO_TIMER_NOME]) + 1));
-    strcpy(nome, msg[MSG_RECUPERO_TIMER_NOME]);
+    nome = malloc(sizeof(char) * (strlen(msg[MSG_RECUPERO_HUB_NOME]) + 1));
+    strcpy(nome, msg[MSG_RECUPERO_HUB_NOME]);
     int i;
-    printf("a1\n" );
-    win_stato = atoi(msg[MSG_RECUPERO_TIMER_WINST]);
-    printf("a2 - %s\n",  msg[MSG_RECUPERO_TIMER_WINST]);
-    bulb_stato = atoi(msg[MSG_RECUPERO_TIMER_BULBST]);
-    printf("a3 - %s\n", msg[MSG_RECUPERO_TIMER_BULBST] );
-    fridge_stato = atoi(msg[MSG_RECUPERO_TIMER_FRIDGEST]);
-    printf("a4 - %s\n", msg[MSG_RECUPERO_TIMER_FRIDGEST]);
-    fridge_delay = atoi(msg[MSG_RECUPERO_TIMER_FRIDGEDLY]);
-    printf("a5 - %s\n",  msg[MSG_RECUPERO_TIMER_FRIDGEDLY]);
-    fridge_t_start = atoi(msg[MSG_RECUPERO_TIMER_FRIDGETSTART]);
-    printf("a6 %s\n",  msg[MSG_RECUPERO_TIMER_FRIDGETSTART]);
-    fridge_t_start = atoi(msg[MSG_RECUPERO_TIMER_FRIDGETERM]);
-    printf("a7 - %s\n", msg[MSG_RECUPERO_TIMER_FRIDGETERM] );
-    if(atoi(msg[MSG_RECUPERO_TIMER_FIGLO]) >= 0){
-      printf("a8 - %s\n", msg[MSG_RECUPERO_TIMER_FIGLO] );
-      printf("----\n%s\n----", messaggio.msg_text);
-      insert_int(atoi(msg[MSG_RECUPERO_TIMER_FIGLO]), 0, figli);
-      recupero_in_cascata(atoi(msg[MSG_RECUPERO_TIMER_FIGLO]));
+    win_stato = atoi(msg[MSG_RECUPERO_HUB_WINST]);
+    bulb_stato = atoi(msg[MSG_RECUPERO_HUB_BULBST]);
+    fridge_stato = atoi(msg[MSG_RECUPERO_HUB_FRIDGEST]);
+    fridge_delay = atoi(msg[MSG_RECUPERO_HUB_FRIDGEDLY]);
+    fridge_t_start = atoi(msg[MSG_RECUPERO_HUB_FRIDGETSTART]);
+    fridge_t_start = atoi(msg[MSG_RECUPERO_HUB_FRIDGETERM]);
+    for( i = MSG_RECUPERO_HUB_INIZIOFIGLI; i < n; i++){
+      insert_int(atoi(msg[i]), 0, figli);
+      recupero_in_cascata(atoi(msg[i]));
     }
-    printf("a9\n" );
-    delay = atoi(msg[MSG_RECUPERO_TIMER_TTIMEOUT]);
-    printf("a10 - %s\n", msg[MSG_RECUPERO_TIMER_TTIMEOUT] );
-    msg_timeout = (char *) malloc(sizeof(char) * (strlen(msg[MSG_RECUPERO_TIMER_TIMEOUTTEXT]) +1 ));
-    strcpy(msg_timeout, msg[MSG_RECUPERO_TIMER_TIMEOUTTEXT]);
-    printf("a11 - %s\n", msg_timeout );
   }
-  strcpy(richiesta_timeout.msg_text, msg_timeout);
-  richiesta_timeout.msg_type = NUOVA_OPERAZIONE;
 
-  int pf = fork();
-  if(pf == 0){
-    timer_cd(t_start, delay, id);
-  }
   //inizio loop
   char ** msg;
   int msg_type;
@@ -118,10 +63,10 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
         //creo la risposta
         msgbuf risposta; //messaggio base + id_padre + nome + num figli + bool override
         risposta.msg_type = 2;
-        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_TIMER);
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_INF_HUB);
         concat_string(&risposta, msg[MSG_ID_MITTENTE]);  //si suppone che solo il padre possa fare una richiesta di questo tipo
         concat_string(&risposta, nome);
-        concat_int(&risposta, 0);
+        concat_int(&risposta, type_child);
         concat_int(&risposta, figli->n);
 
         //controllo override
@@ -133,7 +78,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
         msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
         //creo la richiesta di info per i figli
         msgbuf richiesta_figli;
-        crea_messaggio_base(&richiesta_figli, DEFAULT, TIMER, DEFAULT, id, MSG_INF);
+        crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_INF);
         richiesta_figli.msg_type = NUOVA_OPERAZIONE;
         invia_broadcast(&richiesta_figli, figli);
         msgbuf risposta_figli;
@@ -163,7 +108,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
       }
       else{
         msgbuf richiesta_figli;
-        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), TIMER, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_INF);
+        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_INF);
         richiesta_figli.msg_type = NUOVA_OPERAZIONE;
         invia_broadcast(&richiesta_figli, figli);
 
@@ -202,7 +147,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
           }
         }
         if(flag2 == TRUE){
-          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
           risposta.msg_type = 2;
           msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
         }
@@ -217,7 +162,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
         msgbuf msg_example;
         int rt = override(figli, id, win_stato, bulb_stato, fridge_stato, fridge_delay, fridge_termos);
         if(rt == FALSE){ // niente override
-          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_OVERRIDE_RISP);
+          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_OVERRIDE_RISP);
           concat_int(&risposta, win_stato);
           concat_int(&risposta, bulb_stato);
           concat_int(&risposta, fridge_stato);
@@ -225,7 +170,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
           concat_int(&risposta, fridge_termos);
         }
         else{
-          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
         }
         risposta.msg_type = 2;
         int msg_queue_mit;
@@ -235,7 +180,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
       else{
 
         msgbuf richiesta_figli;
-        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), TIMER, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_OVERRIDE);
+        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_OVERRIDE);
         richiesta_figli.msg_type = NUOVA_OPERAZIONE;
         invia_broadcast(&richiesta_figli, figli);
 
@@ -268,7 +213,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
           }
         }
         if(flag2 == TRUE){
-          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
           risposta.msg_type = 2;
           msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
         }
@@ -281,13 +226,13 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
       crea_queue(atoi(msg[MSG_ID_MITTENTE]), &msg_queue_mit);
       //controllo se devo essere rimosso
       if(atoi(msg[MSG_RIMUOVIFIGLIO_ID]) == id){
-        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
         flag_rimuovi = TRUE;
 
         if(atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEP){
           msgbuf msg_deposito;
           msg_deposito.msg_type = NUOVA_OPERAZIONE;
-          crea_messaggio_base(&msg_deposito, DEPOSITO, TIMER, DEPOSITO, id, MSG_AGGIUNGI);
+          crea_messaggio_base(&msg_deposito, DEPOSITO, HUB, DEPOSITO, id, MSG_AGGIUNGI);
           concat_int(&msg_deposito, id);
           int q_dep;
           crea_queue(DEPOSITO, &q_dep);
@@ -296,12 +241,12 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
       }
       else{
 
-        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
 
 
         msgbuf richiesta_figli;
 
-        crea_messaggio_base(&richiesta_figli, DEFAULT, TIMER, DEFAULT, id, MSG_RIMUOVIFIGLIO);
+        crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_RIMUOVIFIGLIO);
         concat_string(&richiesta_figli, msg[MSG_RIMUOVIFIGLIO_ID]);
         concat_string(&richiesta_figli, msg[MSG_RIMUOVIFIGLIO_SPEC]);
         richiesta_figli.msg_type = NUOVA_OPERAZIONE;
@@ -338,33 +283,54 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
     }
     else if(codice_messaggio(msg) == MSG_AGGIUNGI){
       if(id_dest == DEFAULT || id_dest == id){
-        msgbuf risposta;
-        if(figli->n == 0){
-          int q_nf;
-          crea_queue(atoi(msg[MSG_AGGIUNGI_IDF]), &q_nf);
+        int q_nf;
+        crea_queue(atoi(msg[MSG_AGGIUNGI_IDF]), &q_nf);
 
-          msgbuf richiesta_figlio, risposta_figlio, richiesta_dep, risposta_deb;
-          char ** msg_risp_f;
+        msgbuf richiesta_figlio, risposta_figlio, risposta, richiesta_dep, risposta_deb;
+        char ** msg_risp_f;
+        /*
+        crea_messaggio_base(&richiesta_figlio, DEFAULT, HUB, DEFAULT, id, MSG_GET_TERMINAL_TYPE);
+        richiesta_figlio.msg_type = NUOVA_OPERAZIONE;
+        msgsnd(q_nf, &richiesta_figlio, sizeof(richiesta_figlio.msg_text), 0);
+
+        int flag = TRUE;
+        int type_new_c = -1;
+        while(flag){
+          if(leggi(queue, &risposta_figlio, 2, 2)){
+            //printf("hub - %d - pid = %d - riga : %d\n------------------\n%s\n------------------\n", id,getpid(), 347,risposta_figlio.msg_text);
+            protocoll_parser(risposta_figlio.msg_text, &msg_risp_f);
+            if(codice_messaggio(msg_risp_f) == MSG_MYTYPE){
+              type_new_c = atoi(msg[MSG_MYTYPE_TYPE]);
+              flag = FALSE;
+            }
+          }
+          else{
+            flag = FALSE;
+          }
+        }*/
+        //if(type_new_c > 0 && (type_new_c == type_child || type_child <= 0)){
+          //type_child = type_new_c;
           insert_int(q_nf, 0, figli);
 
           int q_dep;
           crea_queue(DEPOSITO, &q_dep);
-          crea_messaggio_base(&richiesta_dep, DEPOSITO, TIMER, DEPOSITO, id, MSG_DEPOSITO_DEL);
+          crea_messaggio_base(&richiesta_dep, DEPOSITO, HUB, DEPOSITO, id, MSG_DEPOSITO_DEL);
           concat_string(&richiesta_dep, msg[MSG_AGGIUNGI_IDF]);
           richiesta_dep.msg_type = NUOVA_OPERAZIONE;
           msgsnd(q_dep, &richiesta_dep, sizeof(richiesta_dep.msg_text), 0);
 
-          crea_messaggio_base(&richiesta_figlio, DEFAULT, TIMER, DEFAULT, id, MSG_SALVA_SPEGNI);
+          crea_messaggio_base(&richiesta_figlio, DEFAULT, HUB, DEFAULT, id, MSG_SALVA_SPEGNI);
           richiesta_figlio.msg_type = NUOVA_OPERAZIONE;
           msgsnd(q_nf, &richiesta_figlio, sizeof(richiesta_figlio.msg_text), 0);
 
           recupero_in_cascata(q_nf);
 
-          crea_messaggio_base(&risposta, DEPOSITO, TIMER, DEPOSITO, id, MSG_ACKP);
-        }
+          crea_messaggio_base(&risposta, DEPOSITO, HUB, DEPOSITO, id, MSG_ACKP);
+
+        /*}
         else{
-          crea_messaggio_base(&risposta, DEPOSITO, TIMER, DEPOSITO, id, MSG_ACKN);
-        }
+          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+        }*/
         risposta.msg_type = 2;
         int msg_queue_mit;
         crea_queue(atoi(msg[MSG_ID_MITTENTE]), &msg_queue_mit);
@@ -374,7 +340,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
       else{
 
         msgbuf richiesta_figli;
-        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), TIMER, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_AGGIUNGI);
+        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_AGGIUNGI);
         concat_string(&richiesta_figli, msg[MSG_AGGIUNGI_IDF]);
         richiesta_figli.msg_type = NUOVA_OPERAZIONE;
         invia_broadcast(&richiesta_figli, figli);
@@ -408,7 +374,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
           }
         }
         if(flag2 == TRUE){
-          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
           risposta.msg_type = 2;
           msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
         }
@@ -418,7 +384,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
     else if(codice_messaggio(msg) == MSG_GET_TERMINAL_TYPE ){
       if(id_dest == DEFAULT || id_dest == id){
         msgbuf risposta;
-        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_MYTYPE);
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_MYTYPE);
         if(type_child > 0){
           concat_int(&risposta, type_child);
         }
@@ -434,7 +400,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
       else{
 
         msgbuf richiesta_figli;
-        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), TIMER, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_GET_TERMINAL_TYPE);
+        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_GET_TERMINAL_TYPE);
         richiesta_figli.msg_type = NUOVA_OPERAZIONE;
         invia_broadcast(&richiesta_figli, figli);
 
@@ -467,26 +433,9 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
           }
         }
         if(flag2 == TRUE){
-          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+          crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
           risposta.msg_type = 2;
           msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
-        }
-      }
-    }
-    else if(codice_messaggio(msg) == MSG_TIMER_TIMEOUT ){
-      int q_dest;
-      int dim_msg = protocoll_parser(richiesta_timeout.msg_text, &msg);
-      msgbuf richiesta_timeout, risposta;
-      int cod = codice_messaggio(msg);
-      if(dim_msg >= 5 ){
-        if(cod == MSG_FRIDGE_SETTERMOSTATO || cod == MSG_FRIDGE_SETSTATO || cod == MSG_WINDOW_OPEN || cod == MSG_WINDOW_CLOSE){
-          itoa(id, &(msg[MSG_ID_MITTENTE]));
-          itoa(TIMER, &(msg[MSG_TYPE_MITTENTE]));
-          ricomponi_messaggio(msg, dim_msg, &richiesta_timeout);
-          invia_broadcast(&richiesta_timeout, figli);
-          if(figli->n > 0){
-            leggi(queue, &risposta, 2, 2);
-          }
         }
       }
     }
@@ -502,10 +451,10 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
 
       if(id_dest == DEFAULT || id_dest == id){
         fridge_termos = atoi(msg[MSG_FRIDGE_VALORE]);
-        crea_messaggio_base(&richiesta_figli, DEFAULT, TIMER, DEFAULT, id, MSG_FRIDGE_SETTERMOSTATO);
+        crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_FRIDGE_SETTERMOSTATO);
       }
       else{
-        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), TIMER, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_FRIDGE_SETTERMOSTATO);
+        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_FRIDGE_SETTERMOSTATO);
       }
 
       concat_string(&richiesta_figli, msg[MSG_FRIDGE_VALORE]);
@@ -520,7 +469,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
           if(codice_messaggio(msg_risp_f) != MSG_ACKN){
             if(flag2 == TRUE){
               flag2 = FALSE;
-              crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+              crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
               risposta.msg_type = 2;
               msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
             }
@@ -531,7 +480,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
         }
       }
       if(flag2 == TRUE){
-        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
         risposta.msg_type = 2;
         msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
       }
@@ -549,10 +498,10 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
       if(id_dest == DEFAULT || id_dest == id){
         bulb_stato = atoi(msg[MSG_SETSTATO_VAL]);
         fridge_stato = atoi(msg[MSG_SETSTATO_VAL]);
-        crea_messaggio_base(&richiesta_figli, DEFAULT, TIMER, DEFAULT, id, MSG_SETSTATO);
+        crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_SETSTATO);
       }
       else{
-        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), TIMER, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_SETSTATO);
+        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_SETSTATO);
       }
 
       concat_string(&richiesta_figli, msg[MSG_SETSTATO_VAL]);
@@ -567,7 +516,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
           if(codice_messaggio(msg_risp_f) != MSG_ACKN){
             if(flag2 == TRUE){
               flag2 = FALSE;
-              crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+              crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
               risposta.msg_type = 2;
               msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
             }
@@ -578,7 +527,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
         }
       }
       if(flag2 == TRUE){
-        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
         risposta.msg_type = 2;
         msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
       }
@@ -595,10 +544,10 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
 
       if(id_dest == DEFAULT || id_dest == id){
         win_stato = TRUE;
-        crea_messaggio_base(&richiesta_figli, DEFAULT, TIMER, DEFAULT, id, MSG_WINDOW_OPEN);
+        crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_WINDOW_OPEN);
       }
       else{
-        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), TIMER, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_WINDOW_OPEN);
+        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_WINDOW_OPEN);
       }
 
       richiesta_figli.msg_type = NUOVA_OPERAZIONE;
@@ -612,7 +561,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
           if(codice_messaggio(msg_risp_f) != MSG_ACKN){
             if(flag2 == TRUE){
               flag2 = FALSE;
-              crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+              crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
               risposta.msg_type = 2;
               msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
             }
@@ -623,7 +572,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
         }
       }
       if(flag2 == TRUE){
-        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
         risposta.msg_type = 2;
         msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
       }
@@ -640,10 +589,10 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
 
       if(id_dest == DEFAULT || id_dest == id){
         win_stato = FALSE;
-        crea_messaggio_base(&richiesta_figli, DEFAULT, TIMER, DEFAULT, id, MSG_WINDOW_CLOSE);
+        crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_WINDOW_CLOSE);
       }
       else{
-        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), TIMER, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_WINDOW_CLOSE);
+        crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_WINDOW_CLOSE);
       }
 
       richiesta_figli.msg_type = NUOVA_OPERAZIONE;
@@ -657,7 +606,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
           if(codice_messaggio(msg_risp_f) != MSG_ACKN){
             if(flag2 == TRUE){
               flag2 = FALSE;
-              crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
+              crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKP);
               risposta.msg_type = 2;
               msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
             }
@@ -668,7 +617,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
         }
       }
       if(flag2 == TRUE){
-        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
         risposta.msg_type = 2;
         msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
       }
@@ -686,57 +635,42 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
         //creo il messaggio di ripristino
         if( codice_messaggio(msg) == MSG_SALVA_SPEGNI || ( codice_messaggio(msg) == MSG_RIMUOVIFIGLIO && (atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_SALVA || atoi(msg[MSG_RIMUOVIFIGLIO_SPEC]) == MSG_RIMUOVIFIGLIO_SPEC_DEP ) ) ) {
           //printf("====> %d\n",codice_messaggio(msg));
-          crea_messaggio_base(&msg_salva, TIMER, TIMER, id, id, MSG_RECUPERO_TIMER);
-          concat_int(&msg_salva, TIMER);
+          crea_messaggio_base(&msg_salva, HUB, HUB, id, id, MSG_RECUPERO_HUB);
+          concat_int(&msg_salva, HUB);
           concat_int(&msg_salva, id);
           concat_string(&msg_salva, nome);
           concat_int(&msg_salva, win_stato);
           concat_int(&msg_salva, bulb_stato);
           concat_int(&msg_salva, fridge_stato);
           concat_int(&msg_salva, fridge_delay);
-          concat_int(&msg_salva, 0);
+          concat_int(&msg_salva, fridge_t_start);
           concat_int(&msg_salva, fridge_termos);
-          if(figli->n > 0){
-            int t;
-            get_int(0, &t, figli);
-            concat_int(&msg_salva, t);
-          }
-          else{
-            concat_int(&msg_salva, -1);
-          }
-          int dift = difftime((time(NULL) + delay), t_start);
-          if(dift < 0){
-            dift = 0;
-          }
-          concat_int(&msg_salva, dift);
-          concat_string(&msg_salva, richiesta_timeout.msg_text);
-          printf("----\n%s\n----", msg_salva.msg_text);
+
           msg_salva.msg_type = 10;
           int i, next;
           for(i = 0; i < figli->n && get_int(i, &next, figli); i++){
             concat_int(&msg_salva, next);
           }
           msgsnd(queue, &msg_salva, sizeof(msg_salva.msg_text), 0);
-          crea_messaggio_base(&richiesta_figli, DEFAULT, TIMER, DEFAULT, id, MSG_SALVA_SPEGNI);
+          crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_SALVA_SPEGNI);
         }
         else{
-          crea_messaggio_base(&richiesta_figli, DEFAULT, TIMER, DEFAULT, id, MSG_SPEGNI);
+          crea_messaggio_base(&richiesta_figli, DEFAULT, HUB, DEFAULT, id, MSG_SPEGNI);
         }
 
         //invio il messaggio di chiusura ai figli
         richiesta_figli.msg_type = NUOVA_OPERAZIONE;
         invia_broadcast(&richiesta_figli, figli);
-        kill(pf, SIGTERM);
         exit(0);
       }
       else{
 
         msgbuf richiesta_figli;
         if(codice_messaggio(msg) == MSG_SALVA_SPEGNI){
-          crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), TIMER, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_SALVA_SPEGNI);
+          crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_SALVA_SPEGNI);
         }
         else{
-          crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), TIMER, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_SPEGNI);
+          crea_messaggio_base(&richiesta_figli, atoi(msg[MSG_TYPE_DESTINATARIO]), HUB, atoi(msg[MSG_ID_DESTINATARIO]), id, MSG_SPEGNI);
         }
         richiesta_figli.msg_type = NUOVA_OPERAZIONE;
         invia_broadcast(&richiesta_figli, figli);
@@ -754,8 +688,8 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
       int temp_n = protocoll_parser(richiesta_figli.msg_text, &msg_ric_f);
       strcpy(msg_ric_f[MSG_TYPE_DESTINATARIO], msg[MSG_TYPE_DESTINATARIO]);
       strcpy(msg_ric_f[MSG_ID_DESTINATARIO], msg[MSG_ID_DESTINATARIO]);
-      itoa(TIMER, &msg_ric_f[MSG_TYPE_MITTENTE]);
-      itoa(TIMER, &msg_ric_f[MSG_ID_MITTENTE]);
+      itoa(HUB, &msg_ric_f[MSG_TYPE_MITTENTE]);
+      itoa(HUB, &msg_ric_f[MSG_ID_MITTENTE]);
       ricomponi_messaggio(msg_ric_f, temp_n, &richiesta_figli);
 
       richiesta_figli.msg_type = NUOVA_OPERAZIONE;
@@ -785,7 +719,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
         }
       }
       if(flag2 == TRUE){
-        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), TIMER, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
+        crea_messaggio_base(&risposta, atoi(msg[MSG_TYPE_MITTENTE]), HUB, atoi(msg[MSG_ID_MITTENTE]), id, MSG_ACKN);
         risposta.msg_type = 2;
         msgsnd(msg_queue_mit, &risposta, sizeof(risposta.msg_text), 0);
       }

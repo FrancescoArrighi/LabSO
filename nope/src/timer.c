@@ -61,31 +61,18 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
     nome = malloc(sizeof(char) * (strlen(msg[MSG_RECUPERO_TIMER_NOME]) + 1));
     strcpy(nome, msg[MSG_RECUPERO_TIMER_NOME]);
     int i;
-    printf("a1\n" );
     win_stato = atoi(msg[MSG_RECUPERO_TIMER_WINST]);
-    printf("a2 - %s\n",  msg[MSG_RECUPERO_TIMER_WINST]);
     bulb_stato = atoi(msg[MSG_RECUPERO_TIMER_BULBST]);
-    printf("a3 - %s\n", msg[MSG_RECUPERO_TIMER_BULBST] );
     fridge_stato = atoi(msg[MSG_RECUPERO_TIMER_FRIDGEST]);
-    printf("a4 - %s\n", msg[MSG_RECUPERO_TIMER_FRIDGEST]);
     fridge_delay = atoi(msg[MSG_RECUPERO_TIMER_FRIDGEDLY]);
-    printf("a5 - %s\n",  msg[MSG_RECUPERO_TIMER_FRIDGEDLY]);
     fridge_t_start = atoi(msg[MSG_RECUPERO_TIMER_FRIDGETSTART]);
-    printf("a6 %s\n",  msg[MSG_RECUPERO_TIMER_FRIDGETSTART]);
     fridge_t_start = atoi(msg[MSG_RECUPERO_TIMER_FRIDGETERM]);
-    printf("a7 - %s\n", msg[MSG_RECUPERO_TIMER_FRIDGETERM] );
-    if(atoi(msg[MSG_RECUPERO_TIMER_FIGLO]) >= 0){
-      printf("a8 - %s\n", msg[MSG_RECUPERO_TIMER_FIGLO] );
-      printf("----\n%s\n----", messaggio.msg_text);
+    if(msg[MSG_RECUPERO_TIMER_FIGLO] >= 0){
       insert_int(atoi(msg[MSG_RECUPERO_TIMER_FIGLO]), 0, figli);
       recupero_in_cascata(atoi(msg[MSG_RECUPERO_TIMER_FIGLO]));
     }
-    printf("a9\n" );
     delay = atoi(msg[MSG_RECUPERO_TIMER_TTIMEOUT]);
-    printf("a10 - %s\n", msg[MSG_RECUPERO_TIMER_TTIMEOUT] );
-    msg_timeout = (char *) malloc(sizeof(char) * (strlen(msg[MSG_RECUPERO_TIMER_TIMEOUTTEXT]) +1 ));
     strcpy(msg_timeout, msg[MSG_RECUPERO_TIMER_TIMEOUTTEXT]);
-    printf("a11 - %s\n", msg_timeout );
   }
   strcpy(richiesta_timeout.msg_text, msg_timeout);
   richiesta_timeout.msg_type = NUOVA_OPERAZIONE;
@@ -694,15 +681,12 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
           concat_int(&msg_salva, bulb_stato);
           concat_int(&msg_salva, fridge_stato);
           concat_int(&msg_salva, fridge_delay);
-          concat_int(&msg_salva, 0);
+          concat_int(&msg_salva, fridge_t_start);
           concat_int(&msg_salva, fridge_termos);
           if(figli->n > 0){
             int t;
             get_int(0, &t, figli);
             concat_int(&msg_salva, t);
-          }
-          else{
-            concat_int(&msg_salva, -1);
           }
           int dift = difftime((time(NULL) + delay), t_start);
           if(dift < 0){
@@ -710,7 +694,7 @@ void dv_timer(int id, int recupero, char * nome, char * msg_timeout, int delay){
           }
           concat_int(&msg_salva, dift);
           concat_string(&msg_salva, richiesta_timeout.msg_text);
-          printf("----\n%s\n----", msg_salva.msg_text);
+
           msg_salva.msg_type = 10;
           int i, next;
           for(i = 0; i < figli->n && get_int(i, &next, figli); i++){

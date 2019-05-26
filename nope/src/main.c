@@ -370,12 +370,13 @@ void list(char ** cmd, int n, int_list * figli, int queue, int deposito){
 }
 
 void add(char ** cmd, int n, int q_dep, int new_id){
+
   msgbuf messaggio;
-  crea_messaggio_base(&messaggio, DEPOSITO, CONTROLLER, DEPOSITO, CONTROLLER, MSG_ADD_DEVICE);
   int flag = FALSE;
   if(n == 3){
     flag = TRUE;
     rimuovi_maiuscole(cmd[1]);
+    crea_messaggio_base(&messaggio, DEPOSITO, CONTROLLER, DEPOSITO, CONTROLLER, MSG_ADD_DEVICE);
     if(strcmp(cmd[1], "hub") == 0){
       concat_int(&messaggio, HUB);
     }
@@ -408,7 +409,7 @@ void add(char ** cmd, int n, int q_dep, int new_id){
       concat_string(&messaggio, cmd[2]);
       concat_string(&messaggio, cmd[3]);
 
-      int destinatario;
+      int flag = TRUE, destinatario;
       msgbuf richiesta;
       int invia_controllla = FALSE;
       char ** t_cmd = cmd;
