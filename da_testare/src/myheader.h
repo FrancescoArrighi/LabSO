@@ -111,6 +111,27 @@
 
 #define BUF_SIZE 150
 
+//Campi per Info - MSG_INF_BULB
+#define BULB_INF_NOME 6 // Subito dopo l'id Padre
+#define BULB_INF_STATO 7
+#define BULB_INF_INTERRUTTORE 8
+#define BULB_INF_TIME 9
+
+//Campi per Info - MSG_INF_WINDOW
+#define WINDOW_INF_NOME 6 // Subito dopo l'id Padre
+#define WINDOW_INF_STATO 7
+#define WINDOW_INF_TIME 8
+
+#define MSG_FRIDGE_VALORE 5
+
+#define MSG_SETSTATO 1050
+#define MSG_SETSTATO_VAL 5
+#define MSG_ALLON 1051
+#define MSG_ALLOFF 1052
+
+#define MSG_FRIDGE_SETSTATO 710002
+#define MSG_FRIDGE_SETTERMOSTATO 710004
+
 //Struct
 typedef struct pair_int{
     int first;

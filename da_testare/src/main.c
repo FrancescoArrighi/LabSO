@@ -406,7 +406,61 @@ void add(char ** cmd, int n, int q_dep, int new_id){
 }
 
 void swtch(char ** cmd, int n, int queue, int deposito){
-
+    int flag = TRUE, destinatario;
+    if(n == 3){
+        if(is_integer(cmd[1]) == TRUE && cmd[2] != NULL && cmd[3] != NULL){
+            rimuovi_maiuscole(cmd[2]);
+            rimuovi_maiuscole(cmd[3]);
+            destinatario = atoi(cmd[1]);
+            if(strcmp(cmd[2], "stato") == 0){
+                if(strcmp(cmd[3], "on") == 0){
+                    crea_messaggio_base(&richiesta, DEFAULT, CONTROLLER, destinatario ,MSG_SETSTATO);
+                    concat_int(&risposta, TRUE);
+                }
+                else if(strcmp(cmd[2], "off") == 0){
+                    crea_messaggio_base(&richiesta, DEFAULT, CONTROLLER, destinatario ,MSG_SETSTATO);
+                    concat_int(&risposta, FALSE);
+                }
+                else{
+                    printf("Attenzione il comando SWITCH STATO accetta solo 'ON' o 'OFF' come argomento\n" );
+                }
+            }
+            else if(strcmp(cmd[2], "open") == 0){
+                if(strcmp(cmd[3], "on") == 0){
+                    crea_messaggio_base(&richiesta, WINDOW, CONTROLLER, destinatario ,MSG_WINDOW_OPEN);
+                }
+                else{
+                    printf("Attenzione il comando SWITCH OPEN accetta solo 'ON' come argomento\n" );
+                }
+            }
+            else if(strcmp(cmd[2], "close") == 0){
+                if(strcmp(cmd[3], "on") == 0){
+                    crea_messaggio_base(&richiesta, WINDOW, CONTROLLER, destinatario ,MSG_WINDOW_CLOSE);
+                }
+                else{
+                    printf("Attenzione il comando SWITCH CLOSE accetta solo 'ON' come argomento\n" );
+                }
+            }
+            else if(strcmp(cmd[2], "termostato") == 0){
+                if(is_integer(cmd[3])){
+                    crea_messaggio_base(&richiesta, FRIDGE, CONTROLLER, destinatario ,MSG_FRIDGE_SETTERMOSTATO);
+                    concat_string(cmd[3]);
+                }
+                else{
+                    printf("Attenzione il comando SWITCH TERMOSTATO accetta solo intero come parametro aggiuntivo\n" );
+                }
+            }
+        }
+        else{
+            flag = FALSE;
+        }
+    }
+    else{
+        flag = FALSE;
+    }
+    if(flag == FALSE){
+        printf("\nErrore campi: add <type dispositivo>\n <type dispositivo>: \"hub\", \"timer\", \"bulb\", \"window\", \"fridge\"\n");
+    }
 }
 
 void info(char ** cmd, int n, int queue, int deposito, int_list * figli){
