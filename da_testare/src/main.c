@@ -306,10 +306,67 @@ void lik(char ** cmd, int n, int_list * figli, int queue, int deposito){
 }
 
 void list(char ** cmd, int n, int_list * figli, int queue, int deposito){
-  if(n == 1){
+    if(n == 1){
+      msgbuf newmsg, risposta_figli;
+      char ** msg_risp_f;
+      crea_messaggio_base(&newmsg, DEPOSITO, CONTROLLER, DEPOSITO, CONTROLLER, MSG_INF);
+      newmsg.msg_type = NUOVA_OPERAZIONE;
+      msgsnd(deposito, &newmsg, sizeof(newmsg.msg_text), 0);
+
+      int flag = TRUE;
+      int i, dim_msg, cod;
+      char * str_type;
+      for(i = 1; i > 0 && flag; i--){
+        if(leggi(queue, &risposta_figli, 2, 2)){
+          dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
+          cod = codice_messaggio(msg_risp_f);
+          if(cod == MSG_INF_HUB || cod == MSG_INF_TIMER || cod == MSG_INF_DEPOSITO){
+            i += atoi(msg_risp_f[MSG_INF_CONTROLDV_NFIGLI]);
+          }
+
+          if(cod == MSG_INF_HUB){
+            str_type = (char *) malloc(sizeof(char) * 4);
+            strcpy(str_type, "Hub");
+          }
+          else if(cod == MSG_INF_TIMER){
+            str_type = (char *) malloc(sizeof(char) * 6);
+            strcpy(str_type, "Timer");
+          }
+          else if(cod == MSG_INF_BULB){
+            stampa_info_bulb(&risposta_figli);
+            str_type = (char *) malloc(sizeof(char) * 5);
+            strcpy(str_type, "Bulb");
+          }
+          else if(cod == MSG_INF_WINDOW){
+            stampa_info_window(&risposta_figli);
+            str_type = (char *) malloc(sizeof(char) * 7);
+            strcpy(str_type, "Window");
+          }
+          else if(cod == MSG_INF_FRIDGE){
+            str_type = (char *) malloc(sizeof(char) * 7);
+            strcpy(str_type, "Fridge");
+          }
+          else{
+            str_type = (char *) malloc(sizeof(char) * 3);
+            strcpy(str_type, "ND");
+          }
+
+          if(cod != MSG_INF_DEPOSITO){
+            printf("=> %s : %s : %s\n", msg_risp_f[MSG_INF_NOME], str_type ,msg_risp_f[MSG_ID_MITTENTE]);
+          }
+        }
+        else{
+          flag = FALSE;
+          printf(">>timeout\n");
+        }
+    }
     get_all_info(figli, queue);
   }
+  else{
+    printf("\nErrore campi: il comando list non accetta parametri");
+  }
 }
+
 
 void add(char ** cmd, int n, int q_dep, int new_id){
 
@@ -364,16 +421,32 @@ void info(char ** cmd, int n, int queue, int deposito, int_list * figli){
   }
   invia_broadcast(&newmsg, figli);
   int flag = TRUE;
-  int i;
+  int i, dim_msg, cod;
   printf("controller info:\n");
   for(i = figli->n + 1; i > 0 && flag; i--){
     if(leggi(queue, &risposta_figli, 2, 2)){
-      int dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
-      if(codice_messaggio(msg_risp_f) == MSG_INF_HUB || codice_messaggio(msg_risp_f) == MSG_INF_TIMER || codice_messaggio(msg_risp_f) == MSG_INF_DEPOSITO){
+      dim_msg = protocoll_parser(risposta_figli.msg_text, &msg_risp_f);
+      cod = codice_messaggio(msg_risp_f);
+      if(cod == MSG_INF_HUB || cod == MSG_INF_TIMER || cod == MSG_INF_DEPOSITO){
         i += atoi(msg_risp_f[MSG_INF_CONTROLDV_NFIGLI]);
         printf("stampa : aggiunto %d\n", atoi(msg_risp_f[MSG_INF_CONTROLDV_NFIGLI]) );
       }
-      printf("info:\n---------------------------------- \n%s\n---------------------------------- \n", risposta_figli.msg_text);
+      printf("----\n%s\n----\n", risposta_figli.msg_text );
+      if(cod == MSG_INF_HUB){
+
+      }
+      else if(cod == MSG_INF_TIMER){
+
+      }
+      else if(cod == MSG_INF_BULB){
+        stampa_info_bulb(&risposta_figli);
+      }
+      else if(cod == MSG_INF_WINDOW){
+        stampa_info_window(&risposta_figli);
+      }
+      else if(cod == MSG_INF_FRIDGE){
+
+      }
     }
     else{
       flag = FALSE;
@@ -381,6 +454,7 @@ void info(char ** cmd, int n, int queue, int deposito, int_list * figli){
     }
   }
 }
+
 
 void controller(int myid, int id_deposito){
     printf("controller - %d - pid = %d\n", myid, getpid());
